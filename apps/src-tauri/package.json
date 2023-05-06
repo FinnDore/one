@@ -1,0 +1,13 @@
+{
+    "name": "@k/src-tauri",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "build": "tauri build",
+        "clean": "cargo clean",
+        "dev": "cargo watch -x run"
+    },
+    "dependencies": {
+        "@tauri-apps/cli": "^1.3.0"
+    }
+}
