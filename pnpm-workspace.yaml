@@ -1,0 +1,4 @@
+packages:
+  - apps/client
+  - apps/src-tauri
+  - packages/config/*

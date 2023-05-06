@@ -1,0 +1,29 @@
+{
+    "$schema": "https://turborepo.org/schema.json",
+    "globalDependencies": ["**/.env"],
+    "pipeline": {
+        "dev": {
+            "persistent": true,
+            "cache": false
+        },
+        "build": {
+            "dependsOn": [],
+            "outputs": ["apps/client/out/**"]
+        },
+        "@k/src-tauri#build": {
+            "dependsOn": ["@k/client#build"]
+        },
+        "lint": {},
+        "lint:fix": {},
+        "clean": {
+            "cache": false
+        },
+        "//#clean": {
+            "cache": false
+        },
+        "type-check": {
+            "cache": false
+        }
+    },
+    "globalEnv": ["CI", "NODE_ENV", "SKIP_ENV_VALIDATION"]
+}
