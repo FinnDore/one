@@ -19,7 +19,8 @@
             "window": {
                 "setFullscreen": true,
                 "minimize": true,
-                "close": true
+                "close": true,
+                "startDragging": true
             }
         },
         "bundle": {
@@ -44,7 +45,7 @@
             {
                 "fullscreen": false,
                 "resizable": true,
-                "title": "test2",
+                "title": "one",
                 "width": 800,
                 "height": 600,
                 "decorations": false,
