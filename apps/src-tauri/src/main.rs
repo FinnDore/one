@@ -5,7 +5,7 @@ use axum::{
     body,
     http::{self, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::post,
     Extension, Json, Router,
 };
 
@@ -16,15 +16,21 @@ fn greet(name: &str) -> String {
 }
 
 fn main() {
-    let router = Router::new().route("/", get(|| async { "Hello, World!" }));
+    let router = Router::new().route(
+        "/gamestate/csgo",
+        post(|Json(payload): Json<serde_json::Value>| async move {
+            println!("{:?}", &payload);
+        }),
+    );
     let port = "3001";
     let host = format!("0.0.0.0:{:}", port);
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(|_app| {
             tauri::async_runtime::spawn(async move {
                 axum::Server::bind(&host.to_string().parse().unwrap())
                     .serve(router.into_make_service())
                     .await
+                    .expect("error while running axum server")
             });
             Ok(())
         })
