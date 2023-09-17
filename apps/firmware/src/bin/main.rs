@@ -35,10 +35,8 @@ async fn main(_spawner: Spawner) {
 
     loop {
         for j in (0..(256 * 5)) {
-            // debug!("New Colors:");
             for i in 0..NUM_LEDS {
                 data[i] = wheel((((i * 256) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
-                // debug!("R: {} G: {} B: {}", data[i].r, data[i].g, data[i].b);
             }
             ws2812.write(&data).await;
 
