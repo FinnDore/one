@@ -14,7 +14,7 @@ use embassy_rp::{bind_interrupts, clocks, into_ref, Peripheral, PeripheralRef};
 use embassy_time::{Duration, Timer};
 use fixed::types::U24F8;
 use fixed_macro::fixed;
-use smart_leds::{RGB8, RGBW};
+use smart_leds::{RGB8, RGBA, RGBW};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -28,8 +28,8 @@ async fn main(_spawner: Spawner) {
 
     // This is the number of leds in the string. Helpfully, the sparkfun thing plus and adafruit
     // feather boards for the 2040 both have one built in.
-    const NUM_LEDS: usize = 64;
-    let mut data = [RGBW::default(); NUM_LEDS];
+    const NUM_LEDS: usize = 1;
+    let mut data = [RGB8::default(); NUM_LEDS];
 
     let mut ws2812 = Ws2812::new(&mut common, sm0, p.DMA_CH0, p.PIN_19);
 
@@ -144,7 +144,6 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
 /// Input a value 0 to 255 to get a color value
 /// The colours are a transition r - g - b - back to r.
 pub fn wheel(mut wheel_pos: u8) -> RGB8 {
-    wheel_pos = 255 - wheel_pos;
     if wheel_pos < 85 {
         return (255 - wheel_pos * 3, 0, wheel_pos * 3).into();
     }
