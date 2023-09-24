@@ -5,6 +5,7 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::dma::{AnyChannel, Channel};
+use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection,
@@ -12,6 +13,7 @@ use embassy_rp::pio::{
 };
 use embassy_rp::{bind_interrupts, clocks, into_ref, Peripheral, PeripheralRef};
 use embassy_time::{Duration, Timer};
+use embedded_hal_async::digital::Wait;
 use fixed::types::U24F8;
 use fixed_macro::fixed;
 use smart_leds::{RGB8, RGBA, RGBW};
@@ -19,6 +21,7 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
+    let mut on = false;
     info!("Start");
     let p = embassy_rp::init(Default::default());
 
@@ -28,20 +31,57 @@ async fn main(_spawner: Spawner) {
 
     // This is the number of leds in the string. Helpfully, the sparkfun thing plus and adafruit
     // feather boards for the 2040 both have one built in.
-    const NUM_LEDS: usize = 1;
+    const NUM_LEDS: usize = 64;
     let mut data = [RGB8::default(); NUM_LEDS];
 
     let mut ws2812 = Ws2812::new(&mut common, sm0, p.DMA_CH0, p.PIN_19);
 
+    let button = Input::new(p.PIN_15, Pull::Up);
     loop {
-        for j in (0..(256 * 5)) {
+        // if button.is_high() {
+        //     // for i in 0..NUM_LEDS {
+        //     //     data[i] = [0, 0, 0].into();
+        //     //     //  wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+        //     // }
+        // } else {
+        //     println!("is pressed");
+        //     for j in (0..(256 * 5)) {
+        //         for i in 0..NUM_LEDS {
+        //             data[i] = wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+
+        //             // [(((i * 256) as u16 / 10) as u8) & 255, 255, 255].into()
+        //         }
+
+        //         ws2812.write(&data).await;
+        //     }
+        // }
+
+        debug!("loop:");
+        for j in 0..(256 * 5) {
             for i in 0..NUM_LEDS {
-                data[i] = wheel((((i * 256) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+                data[i] = wheel((((10 * 256) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+                debug!("R: {} G: {} B: {}", data[i].r, data[i].g, data[i].b);
+            }
+            loop {
+                if button.is_low() {
+                    break;
+                } else {
+                    Timer::after(Duration::from_millis(10)).await;
+                }
             }
             ws2812.write(&data).await;
-
-            Timer::after(Duration::from_millis(10)).await;
         }
+        // button.wait_for_high().await;
+        // println!("Button pressed");
+        // for i in 0..NUM_LEDS {
+        //     data[i] = [0, 0, 255].into();
+        //     //  wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+        // }
+
+        // ws2812.write(&data).await;
+
+        Timer::after(Duration::from_millis(100)).await;
+        on = false
     }
 }
 
@@ -141,7 +181,8 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
 
 /// Input a value 0 to 255 to get a color value
 /// The colours are a transition r - g - b - back to r.
-pub fn wheel(mut wheel_pos: u8) -> RGB8 {
+fn wheel(mut wheel_pos: u8) -> RGB8 {
+    wheel_pos = 255 - wheel_pos;
     if wheel_pos < 85 {
         return (255 - wheel_pos * 3, 0, wheel_pos * 3).into();
     }
