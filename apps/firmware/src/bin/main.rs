@@ -6,7 +6,7 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::gpio::{Input, Pull};
-use embassy_rp::peripherals::PIO0;
+use embassy_rp::peripherals::{PIN_15, PIO0};
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection,
     StateMachine,
@@ -31,58 +31,74 @@ async fn main(_spawner: Spawner) {
 
     // This is the number of leds in the string. Helpfully, the sparkfun thing plus and adafruit
     // feather boards for the 2040 both have one built in.
-    const NUM_LEDS: usize = 64;
-    let mut data = [RGB8::default(); NUM_LEDS];
+    const NUM_LEDS: usize = 1;
+    let mut data = [RGBA::default(); NUM_LEDS];
+
+    let mut green = RGBA {
+        r: 0,
+        g: 255,
+        b: 0,
+        a: 0,
+    };
+
+    let purple = RGBA {
+        r: 255,
+        g: 0,
+        b: 255,
+        a: 0,
+    };
+
+    let yellow = RGBA {
+        r: 255,
+        g: 255,
+        b: 0,
+        a: 0,
+    };
+
+    let aqua = RGBA {
+        r: 0,
+        g: 255,
+        b: 255,
+        a: 0,
+    };
+
+    let violet = RGBA {
+        r: 238,
+        g: 130,
+        b: 238,
+        a: 0,
+    };
+
+    let white = RGBA {
+        r: 255,
+        g: 255,
+        b: 255,
+        a: 0,
+    };
+
+    let colors = [green, purple, yellow, aqua, violet, white];
 
     let mut ws2812 = Ws2812::new(&mut common, sm0, p.DMA_CH0, p.PIN_19);
 
-    let button = Input::new(p.PIN_15, Pull::Up);
+    let mut button = Input::new(p.PIN_15, Pull::Up);
     loop {
-        // if button.is_high() {
-        //     // for i in 0..NUM_LEDS {
-        //     //     data[i] = [0, 0, 0].into();
-        //     //     //  wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
-        //     // }
-        // } else {
-        //     println!("is pressed");
-        //     for j in (0..(256 * 5)) {
-        //         for i in 0..NUM_LEDS {
-        //             data[i] = wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
-
-        //             // [(((i * 256) as u16 / 10) as u8) & 255, 255, 255].into()
-        //         }
-
-        //         ws2812.write(&data).await;
-        //     }
-        // }
-
-        debug!("loop:");
-        for j in 0..(256 * 5) {
-            for i in 0..NUM_LEDS {
-                data[i] = wheel((((10 * 256) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
-                debug!("R: {} G: {} B: {}", data[i].r, data[i].g, data[i].b);
-            }
-            loop {
-                if button.is_low() {
-                    break;
-                } else {
-                    Timer::after(Duration::from_millis(10)).await;
-                }
-            }
+        for color in colors {
+            set_leds(&mut data, color);
             ws2812.write(&data).await;
+            wait_for_button_press(&mut button).await;
         }
-        // button.wait_for_high().await;
-        // println!("Button pressed");
-        // for i in 0..NUM_LEDS {
-        //     data[i] = [0, 0, 255].into();
-        //     //  wheel((((i) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
-        // }
-
-        // ws2812.write(&data).await;
-
-        Timer::after(Duration::from_millis(100)).await;
-        on = false
     }
+}
+
+fn set_leds(leds: &mut [RGBA<u32>], color: RGBA<u32>) {
+    for i in 0..leds.len() {
+        leds[i] = color;
+    }
+}
+
+async fn wait_for_button_press(button: &mut Input<'_, PIN_15>) {
+    button.wait_for_low().await;
+    button.wait_for_high().await;
 }
 
 bind_interrupts!(struct Irqs {
@@ -142,6 +158,7 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
 
         // Clock config, measured in kHz to avoid overflows
         // TODO CLOCK_FREQ should come from embassy_rp
+        // WS2812B
         let clock_freq = U24F8::from_num(clocks::clk_sys_freq() / 1000);
         let ws2812_freq = fixed!(800: U24F8);
         let bit_freq = ws2812_freq * CYCLES_PER_BIT;
@@ -164,13 +181,11 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         }
     }
 
-    pub async fn write(&mut self, colors: &[RGB8; N]) {
+    pub async fn write(&mut self, colors: &[RGBA<u32>; N]) {
         // Precompute the word bytes from the colors
         let mut words = [0u32; N];
         for i in 0..N {
-            let word = (u32::from(colors[i].g) << 24)
-                | (u32::from(colors[i].r) << 16)
-                | (u32::from(colors[i].b) << 8);
+            let word = (colors[i].g << 24) | (colors[i].r << 16) | (colors[i].b << 8);
             words[i] = word;
         }
 
