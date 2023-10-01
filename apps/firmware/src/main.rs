@@ -1,42 +1,35 @@
 #![no_std]
 #![no_main]
 #![feature(type_alias_impl_trait)]
-#![feature(alloc_error_handler)]
+
 mod animations;
 mod ws2812;
 
-use core::cell::{Ref, RefCell};
-use core::mem::size_of;
+use core::cell::RefCell;
 
-use alloc::boxed::Box;
 use animations::{NextFrame, StaticColorAnimation};
-use core::mem::MaybeUninit;
 use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_19, PIO0};
-use embassy_rp::pio::{InterruptHandler, Pio, StateMachine};
-use embassy_sync::blocking_mutex::raw::{NoopRawMutex, RawMutex, ThreadModeRawMutex};
-use embassy_sync::blocking_mutex::{CriticalSectionMutex, Mutex};
+use embassy_rp::pio::{InterruptHandler, Pio};
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
-use heapless::{arc_pool, Arc};
 use smart_leds::colors::{
     AQUA, HOT_PINK, LAVENDER_BLUSH, ORANGE, ORANGE_RED, PURPLE, VIOLET, WHITE, YELLOW,
 };
 use smart_leds::RGB8;
 use static_cell::StaticCell;
 
-extern crate alloc;
+// extern crate alloc;
 
-use crate::animations::currrent_frame;
+use crate::animations::CurrentFrame;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-use alloc_cortex_m::CortexMHeap;
-#[global_allocator] // 👈
-static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 const COLORS: [RGB8; 10] = [
     HOT_PINK,
     PURPLE,
@@ -53,24 +46,30 @@ const NUM_LEDS: usize = 1;
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
-static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
 
-arc_pool!(P: Mutex<ThreadModeRawMutex,  StaticColorAnimation>>);
+static STATE: Mutex<ThreadModeRawMutex, RefCell<i64>> = Mutex::new(RefCell::new(0));
 
 #[embassy_executor::task]
-pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0, current_animation: Arc<P>) {
+pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
     debug!("Core 2 started");
     let Pio {
         mut common, sm0, ..
     } = Pio::new(pio0, Irqs);
     let mut ws2812 = Ws2812::new(&mut common, sm0, dma, data_pin, [WHITE; NUM_LEDS]);
 
+    let mut local_state: i64 = 0;
+    let mut current_animation = StaticColorAnimation::new(COLORS);
     loop {
-        current_animation
-            .lock(|animation| ws2812.write_all_colors(animation.current_frame().clone()));
+        let current_state = STATE.lock(|cur| cur.clone().into_inner());
+        if local_state != current_state {
+            local_state = local_state + 1;
+            current_animation.next_frame();
+        }
 
-        debug!("Button pressed color changed");
-        Timer::after(Duration::from_millis(50)).await;
+        ws2812
+            .write_all_colors(current_animation.current_frame().clone())
+            .await;
+        Timer::after(Duration::from_millis(10)).await;
     }
 }
 
@@ -79,30 +78,20 @@ async fn main(_spawner: Spawner) {
     debug!("Program started");
 
     let p = embassy_rp::init(Default::default());
-    let mut s = StaticColorAnimation::new(COLORS.to_vec());
-    let current_animation_arc: Arc<P> = P::alloc(Mutex::new(s)).ok().expect("alloc");
-
-    let current_animation_for_task = current_animation_arc.clone();
-    let current_animation = current_animation_arc.clone().as_ref();
 
     spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
         let executor1 = EXECUTOR1.init(Executor::new());
-        executor1.run(|spawner| {
-            unwrap!(spawner.spawn(color_task(
-                p.PIO0,
-                p.PIN_19,
-                p.DMA_CH0,
-                current_animation_for_task
-            )))
-        });
+        executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_19, p.DMA_CH0))));
     });
 
     let mut button = Input::new(p.PIN_15, Pull::Up);
     loop {
         wait_for_button_press(&mut button).await;
-        let c = current_animation.get_mut();
-        c.next_frame();
-        drop(c);
+
+        STATE.lock(|cur| {
+            let val = cur.borrow_mut().wrapping_add(1);
+            cur.replace(val);
+        });
     }
 }
 
