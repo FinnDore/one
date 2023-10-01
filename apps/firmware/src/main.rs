@@ -12,16 +12,17 @@ use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Input, Pull};
-use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_19, PIO0};
+use embassy_rp::multicore::{pause_core1, resume_core1, spawn_core1, Stack};
+use embassy_rp::peripherals::{CORE1, DMA_CH0, PIN_15, PIN_19, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
+use futures::future::Lazy;
 use smart_leds::colors::{
     AQUA, HOT_PINK, LAVENDER_BLUSH, ORANGE, ORANGE_RED, PURPLE, VIOLET, WHITE, YELLOW,
 };
-use smart_leds::RGB8;
+use smart_leds::{RGB, RGB8};
 use static_cell::StaticCell;
 
 // extern crate alloc;
@@ -47,7 +48,8 @@ const NUM_LEDS: usize = 1;
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
-static STATE: Mutex<ThreadModeRawMutex, RefCell<i64>> = Mutex::new(RefCell::new(0));
+static STATE: Mutex<ThreadModeRawMutex, RefCell<StaticColorAnimation>> =
+    Mutex::new(RefCell::new(StaticColorAnimation::new(COLORS)));
 
 #[embassy_executor::task]
 pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
@@ -57,19 +59,23 @@ pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
     } = Pio::new(pio0, Irqs);
     let mut ws2812 = Ws2812::new(&mut common, sm0, dma, data_pin, [WHITE; NUM_LEDS]);
 
-    let mut local_state: i64 = 0;
-    let mut current_animation = StaticColorAnimation::new(COLORS);
+    let mut should_sleep: bool;
     loop {
-        let current_state = STATE.lock(|cur| cur.clone().into_inner());
-        if local_state != current_state {
-            local_state = local_state + 1;
-            current_animation.next_frame();
-        }
+        should_sleep = false;
+        let current_state = STATE.lock(|cur| {
+            let current_animation = cur.borrow();
+            if current_animation.is_static {
+                should_sleep = true;
+            }
+            return current_animation.current_frame().clone();
+        });
 
-        ws2812
-            .write_all_colors(current_animation.current_frame().clone())
-            .await;
+        ws2812.write_all_colors(current_state).await;
         Timer::after(Duration::from_millis(10)).await;
+        if should_sleep {
+            debug!("sleeeping");
+            pause_core1();
+        }
     }
 }
 
@@ -85,13 +91,23 @@ async fn main(_spawner: Spawner) {
     });
 
     let mut button = Input::new(p.PIN_15, Pull::Up);
+    let mut is_static = false;
+    println!("aaaa");
     loop {
-        wait_for_button_press(&mut button).await;
-
-        STATE.lock(|cur| {
-            let val = cur.borrow_mut().wrapping_add(1);
-            cur.replace(val);
+        let should_resume = is_static.clone();
+        is_static = STATE.lock(|cur| {
+            let mut current_animation = cur.borrow_mut();
+            current_animation.next_frame();
+            return current_animation.is_static.clone();
         });
+
+        debug!("is_static: {}", is_static);
+        if should_resume {
+            debug!("try resume");
+            resume_core1();
+            debug!("resume");
+        }
+        wait_for_button_press(&mut button).await;
     }
 }
 

@@ -20,7 +20,7 @@ pub struct StaticColorAnimation {
 }
 
 impl StaticColorAnimation {
-    pub fn new(colors: [RGB8; 10]) -> Self {
+    pub const fn new(colors: [RGB8; 10]) -> Self {
         Self {
             colors,
             current_index: 0,
