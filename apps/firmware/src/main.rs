@@ -7,7 +7,7 @@ mod ws2812;
 
 use core::cell::RefCell;
 
-use animations::{NextFrame, StaticColorAnimation};
+use animations::{AnimationSet, RainbowAnimation, StaticColorAnimation};
 use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::bind_interrupts;
@@ -27,7 +27,7 @@ use static_cell::StaticCell;
 
 // extern crate alloc;
 
-use crate::animations::CurrentFrame;
+use crate::animations::NextAndCurrentFrame;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -48,8 +48,8 @@ const NUM_LEDS: usize = 1;
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
-static STATE: Mutex<ThreadModeRawMutex, RefCell<StaticColorAnimation>> =
-    Mutex::new(RefCell::new(StaticColorAnimation::new(COLORS)));
+static STATE: Mutex<ThreadModeRawMutex, RefCell<AnimationSet>> =
+    Mutex::new(RefCell::new(AnimationSet::new()));
 
 #[embassy_executor::task]
 pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
@@ -59,30 +59,26 @@ pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
     } = Pio::new(pio0, Irqs);
     let mut ws2812 = Ws2812::new(&mut common, sm0, dma, data_pin, [WHITE; NUM_LEDS]);
 
-    let mut should_sleep: bool;
     loop {
-        should_sleep = false;
         let current_state = STATE.lock(|cur| {
-            let current_animation = cur.borrow();
-            if current_animation.is_static {
-                should_sleep = true;
+            let mut animation_set = cur.borrow_mut();
+            let current_animation = animation_set.current_animation();
+
+            if current_animation.is_static() {
+                return current_animation.current_frame().clone();
+            } else {
+                return current_animation.next_frame().clone();
             }
-            return current_animation.current_frame().clone();
         });
 
         ws2812.write_all_colors(current_state).await;
         Timer::after(Duration::from_millis(10)).await;
-        if should_sleep {
-            debug!("sleeeping");
-            pause_core1();
-        }
     }
 }
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     debug!("Program started");
-
     let p = embassy_rp::init(Default::default());
 
     spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
@@ -91,23 +87,10 @@ async fn main(_spawner: Spawner) {
     });
 
     let mut button = Input::new(p.PIN_15, Pull::Up);
-    let mut is_static = false;
-    println!("aaaa");
     loop {
-        let should_resume = is_static.clone();
-        is_static = STATE.lock(|cur| {
-            let mut current_animation = cur.borrow_mut();
-            current_animation.next_frame();
-            return current_animation.is_static.clone();
-        });
-
-        debug!("is_static: {}", is_static);
-        if should_resume {
-            debug!("try resume");
-            resume_core1();
-            debug!("resume");
-        }
         wait_for_button_press(&mut button).await;
+
+        STATE.lock(|cur| cur.borrow_mut().next_animation());
     }
 }
 
