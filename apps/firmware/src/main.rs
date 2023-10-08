@@ -7,42 +7,24 @@ mod ws2812;
 
 use core::cell::RefCell;
 
-use animations::{AnimationSet, RainbowAnimation, StaticColorAnimation};
+use animations::AnimationSet;
 use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Input, Pull};
-use embassy_rp::multicore::{pause_core1, resume_core1, spawn_core1, Stack};
-use embassy_rp::peripherals::{CORE1, DMA_CH0, PIN_15, PIN_19, PIO0};
+use embassy_rp::multicore::{spawn_core1, Stack};
+use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_19, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
-use futures::future::Lazy;
-use smart_leds::colors::{
-    AQUA, HOT_PINK, LAVENDER_BLUSH, ORANGE, ORANGE_RED, PURPLE, VIOLET, WHITE, YELLOW,
-};
-use smart_leds::{RGB, RGB8};
 use static_cell::StaticCell;
 
 // extern crate alloc;
 
-use crate::animations::NextAndCurrentFrame;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-const COLORS: [RGB8; 10] = [
-    HOT_PINK,
-    PURPLE,
-    YELLOW,
-    AQUA,
-    VIOLET,
-    ORANGE_RED,
-    WHITE,
-    LAVENDER_BLUSH,
-    YELLOW,
-    ORANGE,
-];
 const NUM_LEDS: usize = 1;
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
