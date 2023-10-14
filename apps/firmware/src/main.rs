@@ -18,6 +18,8 @@ use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
+use smart_leds::colors::WHITE;
+use smart_leds::RGBW;
 use static_cell::StaticCell;
 
 // extern crate alloc;
@@ -25,7 +27,7 @@ use static_cell::StaticCell;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-const NUM_LEDS: usize = 1;
+const NUM_LEDS: usize = 64;
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
@@ -34,12 +36,18 @@ static STATE: Mutex<ThreadModeRawMutex, RefCell<AnimationSet>> =
     Mutex::new(RefCell::new(AnimationSet::new()));
 
 #[embassy_executor::task]
-pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
+pub async fn color_task(pio0: PIO0, data_pin: embassy_rp::peripherals::PIN_16, dma: DMA_CH0) {
     debug!("Core 2 started");
     let Pio {
         mut common, sm0, ..
     } = Pio::new(pio0, Irqs);
-    let mut ws2812 = Ws2812::new(&mut common, sm0, dma, data_pin, [WHITE; NUM_LEDS]);
+    let mut ws2812 = Ws2812::new(
+        &mut common,
+        sm0,
+        dma,
+        data_pin,
+        [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
+    );
 
     loop {
         let current_state = STATE.lock(|cur| {
@@ -65,7 +73,7 @@ async fn main(_spawner: Spawner) {
 
     spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
         let executor1 = EXECUTOR1.init(Executor::new());
-        executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_19, p.DMA_CH0))));
+        executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_16, p.DMA_CH0))));
     });
 
     let mut button = Input::new(p.PIN_15, Pull::Up);
