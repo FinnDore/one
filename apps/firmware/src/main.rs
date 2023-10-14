@@ -3,82 +3,94 @@
 #![feature(type_alias_impl_trait)]
 
 mod animations;
+mod tasks;
+mod utils;
 mod ws2812;
 
 use core::cell::RefCell;
 
 use animations::AnimationSet;
+
+use tasks::tcp::tcp_task;
+
 use defmt::*;
-use embassy_executor::{Executor, Spawner};
-use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Input, Pull};
+use embassy_executor::{Executor, InterruptExecutor, Spawner};
+
+use embassy_rp::interrupt::{InterruptExt, Priority};
 use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_19, PIO0};
+use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{InterruptHandler, Pio};
-use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_rp::{bind_interrupts, interrupt};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
-use embassy_time::{Duration, Timer};
+
+use smart_leds::RGBW;
 use static_cell::StaticCell;
 
-// extern crate alloc;
-
+use crate::tasks::button::button_task;
+use crate::tasks::color::color_task;
+use crate::tasks::tcp::TcpTaskOpts;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-const NUM_LEDS: usize = 1;
+const NUM_LEDS: usize = 64;
 
 static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
-static STATE: Mutex<ThreadModeRawMutex, RefCell<AnimationSet>> =
+static EXECUTOR0: InterruptExecutor = InterruptExecutor::new();
+
+static STATE: Mutex<CriticalSectionRawMutex, RefCell<AnimationSet>> =
     Mutex::new(RefCell::new(AnimationSet::new()));
 
-#[embassy_executor::task]
-pub async fn color_task(pio0: PIO0, data_pin: PIN_19, dma: DMA_CH0) {
-    debug!("Core 2 started");
-    let Pio {
-        mut common, sm0, ..
-    } = Pio::new(pio0, Irqs);
-    let mut ws2812 = Ws2812::new(&mut common, sm0, dma, data_pin, [WHITE; NUM_LEDS]);
-
-    loop {
-        let current_state = STATE.lock(|cur| {
-            let mut animation_set = cur.borrow_mut();
-            let current_animation = animation_set.current_animation();
-
-            if current_animation.is_static() {
-                return current_animation.current_frame().clone();
-            } else {
-                return current_animation.next_frame().clone();
-            }
-        });
-
-        ws2812.write_all_colors(current_state).await;
-        Timer::after(Duration::from_millis(10)).await;
-    }
+#[interrupt]
+unsafe fn SWI_IRQ_1() {
+    EXECUTOR0.on_interrupt()
 }
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(main_spawner: Spawner) {
     debug!("Program started");
     let p = embassy_rp::init(Default::default());
 
+    let mut pio = Pio::new(p.PIO0, Irqs);
+
+    interrupt::SWI_IRQ_1.set_priority(Priority::P0);
+    let s = EXECUTOR0.start(interrupt::SWI_IRQ_1);
+    s.spawn(button_task(p.PIN_15))
+        .expect("Button task failed to spawn");
+
+    let ws2812 = Ws2812::new(
+        &mut pio.common,
+        pio.sm1,
+        p.DMA_CH1,
+        p.PIN_16,
+        [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
+    );
+
     spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
         let executor1 = EXECUTOR1.init(Executor::new());
-        executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_19, p.DMA_CH0))));
+        executor1.run(|spawner| {
+            spawner
+                .spawn(color_task(ws2812))
+                .expect("Color task failed to spawn")
+        });
     });
 
-    let mut button = Input::new(p.PIN_15, Pull::Up);
-    loop {
-        wait_for_button_press(&mut button).await;
-
-        STATE.lock(|cur| cur.borrow_mut().next_animation());
-    }
-}
-
-async fn wait_for_button_press(button: &mut Input<'_, PIN_15>) {
-    button.wait_for_low().await;
-    button.wait_for_high().await;
+    tcp_task(
+        main_spawner,
+        TcpTaskOpts {
+            pin_23: p.PIN_23,
+            pin_24: p.PIN_24,
+            pin_25: p.PIN_25,
+            pin_29: p.PIN_29,
+            dma_ch0: p.DMA_CH0,
+            sm0: pio.sm0,
+            irq0: pio.irq0,
+        },
+        pio.common,
+    )
+    .await;
 }
 
 bind_interrupts!(struct Irqs {

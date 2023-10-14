@@ -9,7 +9,7 @@ import clsx from 'clsx';
 import { useFocusState } from '~/hooks/use-focus-state';
 import { window } from '~/lazy-tauri-api/get-current';
 
-export default function MacTrafficLights(props: { className?: string }) {
+export function MacTrafficLights(props: { className?: string }) {
     const [focused] = useFocusState();
 
     return (
