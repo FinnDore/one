@@ -72,7 +72,7 @@ pub async fn color_task(pio0: PIO0, data_pin: embassy_rp::peripherals::PIN_16, d
         });
 
         ws2812.write_all_colors(current_state).await;
-        Timer::after(Duration::from_millis(10)).await;
+        Timer::after(Duration::from_millis(50)).await;
     }
 }
 

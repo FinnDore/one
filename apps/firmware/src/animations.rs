@@ -37,7 +37,7 @@ impl Rainbow {
 
 impl Animation for Rainbow {
     fn next_frame(&mut self) -> &RGBW<u8> {
-        let _ = self.rotation.wrapping_add(1);
+        self.rotation = self.rotation.wrapping_add(1);
 
         self.current_color = wheel(self.rotation);
         &self.current_color
@@ -90,15 +90,15 @@ impl Animation for StaticColor {
 
 pub struct AnimationSet {
     pub rainbow: Rainbow,
-    pub static_color: StaticColor,
     pub folowing_static_color: StaticColor,
+    pub white_color: StaticColor,
     pub current_index: usize,
 }
 
 impl AnimationSet {
     pub fn next_animation(&mut self) {
         self.current_index += 1;
-        if self.current_index >= 2 {
+        if self.current_index >= 3 {
             self.current_index = 0;
         }
 
@@ -112,6 +112,7 @@ impl AnimationSet {
         match self.current_index {
             0 => &mut self.rainbow,
             1 => &mut self.folowing_static_color,
+            2 => &mut self.white_color,
             _ => panic!("Invalid animation index"),
         }
     }
@@ -120,7 +121,7 @@ impl AnimationSet {
         Self {
             rainbow: Rainbow::new(),
             folowing_static_color: StaticColor::default(),
-            static_color: StaticColor::default(),
+            white_color: StaticColor::new(RGBW::new_alpha(255, 255, 255, White(255))),
             current_index: 0,
         }
     }
