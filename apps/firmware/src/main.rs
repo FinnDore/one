@@ -8,13 +8,13 @@ mod ws2812;
 use core::cell::RefCell;
 
 use animations::AnimationSet;
-use cortex_m_rt::entry;
+
 use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 use embassy_rp::gpio::{Input, Pull};
 use embassy_rp::interrupt::{InterruptExt, Priority};
 use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_19, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIO0};
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::{bind_interrupts, interrupt};
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
@@ -65,9 +65,9 @@ pub async fn color_task(pio0: PIO0, data_pin: embassy_rp::peripherals::PIN_16, d
             let current_animation = animation_set.current_animation();
 
             if current_animation.is_static() {
-                return current_animation.current_frame().clone();
+                return *current_animation.current_frame();
             } else {
-                return current_animation.next_frame().clone();
+                return *current_animation.next_frame();
             }
         });
 

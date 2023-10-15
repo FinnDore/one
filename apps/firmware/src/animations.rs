@@ -37,22 +37,18 @@ impl Rainbow {
 
 impl Animation for Rainbow {
     fn next_frame(&mut self) -> &RGBW<u8> {
-        if self.rotation >= 255 {
-            self.rotation = 0;
-        } else {
-            self.rotation += 1;
-        }
+        let _ = self.rotation.wrapping_add(1);
 
         self.current_color = wheel(self.rotation);
-        return &self.current_color;
+        &self.current_color
     }
 
     fn current_frame(&self) -> &RGBW<u8> {
-        return &self.current_color;
+        &self.current_color
     }
 
     fn is_static(&self) -> bool {
-        return self.is_static;
+        self.is_static
     }
 }
 
@@ -84,11 +80,11 @@ impl Animation for StaticColor {
     }
 
     fn current_frame(&self) -> &RGBW<u8> {
-        return &self.current_color;
+        &self.current_color
     }
 
     fn is_static(&self) -> bool {
-        return self.is_static;
+        self.is_static
     }
 }
 
@@ -108,7 +104,7 @@ impl AnimationSet {
 
         if self.current_index == 1 {
             self.folowing_static_color
-                .set_color(self.rainbow.current_frame().clone());
+                .set_color(*self.rainbow.current_frame());
         }
     }
 
