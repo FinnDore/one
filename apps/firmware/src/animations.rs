@@ -37,22 +37,18 @@ impl Rainbow {
 
 impl Animation for Rainbow {
     fn next_frame(&mut self) -> &RGBW<u8> {
-        if self.rotation >= 255 {
-            self.rotation = 0;
-        } else {
-            self.rotation += 1;
-        }
+        self.rotation = self.rotation.wrapping_add(1);
 
         self.current_color = wheel(self.rotation);
-        return &self.current_color;
+        &self.current_color
     }
 
     fn current_frame(&self) -> &RGBW<u8> {
-        return &self.current_color;
+        &self.current_color
     }
 
     fn is_static(&self) -> bool {
-        return self.is_static;
+        self.is_static
     }
 }
 
@@ -84,31 +80,31 @@ impl Animation for StaticColor {
     }
 
     fn current_frame(&self) -> &RGBW<u8> {
-        return &self.current_color;
+        &self.current_color
     }
 
     fn is_static(&self) -> bool {
-        return self.is_static;
+        self.is_static
     }
 }
 
 pub struct AnimationSet {
     pub rainbow: Rainbow,
-    pub static_color: StaticColor,
     pub folowing_static_color: StaticColor,
+    pub white_color: StaticColor,
     pub current_index: usize,
 }
 
 impl AnimationSet {
     pub fn next_animation(&mut self) {
         self.current_index += 1;
-        if self.current_index >= 2 {
+        if self.current_index >= 3 {
             self.current_index = 0;
         }
 
         if self.current_index == 1 {
             self.folowing_static_color
-                .set_color(self.rainbow.current_frame().clone());
+                .set_color(*self.rainbow.current_frame());
         }
     }
 
@@ -116,6 +112,7 @@ impl AnimationSet {
         match self.current_index {
             0 => &mut self.rainbow,
             1 => &mut self.folowing_static_color,
+            2 => &mut self.white_color,
             _ => panic!("Invalid animation index"),
         }
     }
@@ -124,7 +121,7 @@ impl AnimationSet {
         Self {
             rainbow: Rainbow::new(),
             folowing_static_color: StaticColor::default(),
-            static_color: StaticColor::default(),
+            white_color: StaticColor::new(RGBW::new_alpha(255, 255, 255, White(255))),
             current_index: 0,
         }
     }

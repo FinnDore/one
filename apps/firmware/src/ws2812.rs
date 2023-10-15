@@ -1,4 +1,3 @@
-use defmt::{debug, println};
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -6,7 +5,7 @@ use embassy_rp::pio::{
 use embassy_rp::{clocks, into_ref, Peripheral, PeripheralRef};
 use fixed::types::U24F8;
 use fixed_macro::fixed;
-use smart_leds::{RGB8, RGBW};
+use smart_leds::RGBW;
 
 pub struct Ws2812<'d, P: Instance, const S: usize, const N: usize> {
     dma: PeripheralRef<'d, AnyChannel>,
