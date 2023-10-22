@@ -49,3 +49,6 @@ yarn-error.log*
 
 # rust
 *target*
+
+# idea
+*idea*

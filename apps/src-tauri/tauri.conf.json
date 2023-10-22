@@ -19,7 +19,8 @@
             "window": {
                 "setFullscreen": true,
                 "minimize": true,
-                "close": true
+                "close": true,
+                "startDragging": true
             }
         },
         "bundle": {
