@@ -7,7 +7,7 @@ import type { NextPage } from 'next';
 import MacTrafficLights from '~/components/traffic-lights';
 
 const Home: NextPage = () => {
-    const [added, setAdded] = useState(true);
+    const [added] = useState(false);
     return (
         <div className="flex h-screen w-screen flex-col rounded-lg border border-white/25 bg-black">
             <div
@@ -18,7 +18,7 @@ const Home: NextPage = () => {
             </div>
 
             <div className="flex h-full flex-1 flex-col items-center justify-center">
-                {added ? <AddLight /> : <Light />}
+                {added ? <Light /> : <AddLight />}
             </div>
         </div>
     );
@@ -28,7 +28,7 @@ export default Home;
 
 const AddLight = () => {
     return (
-        <div className="pointer pointer group relative aspect-square h-96 transition-all hover:scale-105">
+        <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
             <div className=" add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
             </div>
