@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState } from 'react';
@@ -27,20 +28,36 @@ export default Home;
 
 const AddLight = () => {
     return (
-        <div className="pointer relative aspect-square h-96">
-            <div className="add-light-bg-gradient center-absolute absolute h-full w-full"></div>
+        <div className="pointer pointer group relative aspect-square h-96 transition-all hover:scale-105">
+            <div className=" add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
+                Add Light
+            </div>
+            <div className="add-light-bg-gradient  absolute h-full w-full"></div>
             <img
+                alt=""
                 src="/add-border.svg"
-                className="center-absolute absolute h-full  w-full"
+                className=" absolute h-full  w-full"
             />
             <div className="absolute h-[96%] w-[96%] translate-x-[2%] translate-y-[2%]">
-                <Noise />
-
                 <img
-                    src="/add-border.svg"
-                    className="center-absolute add-light-inner-shadow absolute h-full w-full rounded-md"
+                    alt=""
+                    src={'/NOISE.png'}
+                    className="absolute h-full w-full rounded-md"
                 />
-                <div className="add-light-bg h-full w-full"></div>
+                <img
+                    alt=""
+                    src="/noise/2.png"
+                    className="absolute h-full w-full rounded-md"
+                />
+                <img
+                    alt=""
+                    src="/add-border.svg"
+                    className="add-light-inner-shadow absolute h-full w-full rounded-md"
+                />
+                <div className="add-light-bg  absolute h-full w-full"></div>
+                <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
+                    <span className="plus-icon">+</span>
+                </div>
             </div>
             <div className="add-light-bg absolute h-full w-full"></div>
         </div>
@@ -69,15 +86,4 @@ const Light = () => {
     );
 };
 
-const Noise = () => (
-    <>
-        <img
-            src={'/NOISE.png'}
-            className="center-absolute absolute h-full w-full rounded-md"
-        />
-        <img
-            src="/noise/2.png"
-            className="center-absolute absolute h-full w-full rounded-md"
-        />
-    </>
-);
+const Noise = () => <></>;
