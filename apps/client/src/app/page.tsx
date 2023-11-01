@@ -17,7 +17,7 @@ const Home: NextPage = () => {
                 <MacTrafficLights />
             </div>
 
-            <div className="flex h-full flex-1 flex-col items-center justify-center">
+            <div className="relative flex h-full flex-1 flex-col items-center justify-center">
                 {added ? <Light /> : <AddLight />}
             </div>
         </div>
@@ -29,6 +29,7 @@ export default Home;
 const AddLight = () => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
+            <Dots />
             <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
             </div>
@@ -105,13 +106,22 @@ const AddLight = () => {
     );
 };
 
+const Dots = () => (
+    <div className="dots center-absolute absolute h-[150%] w-screen">
+        <div
+            className="h-full w-full blur-2xl"
+            style={{
+                background:
+                    'linear-gradient(90deg, transparent 0, black 50%, transparent 100%)',
+            }}
+        ></div>
+    </div>
+);
+
 const Light = () => {
     const [color] = useState('#7527d3');
     return (
         <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
-            <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
-                Add Light
-            </div>
             <div className="add-light-bg-gradient  absolute h-[200%] w-[200%]"></div>
 
             <img
