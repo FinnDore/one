@@ -3,11 +3,12 @@
 
 import { useState } from 'react';
 import type { NextPage } from 'next';
+import clsx from 'clsx';
 
 import { MacTrafficLights } from '~/components/traffic-lights';
 
 const Home: NextPage = () => {
-    const [added] = useState(false);
+    const [added, setAdded] = useState(true);
     return (
         <div className="flex h-screen w-screen flex-col rounded-lg border border-white/25 bg-black">
             <div
@@ -17,8 +18,11 @@ const Home: NextPage = () => {
                 <MacTrafficLights />
             </div>
 
-            <div className="relative flex h-full flex-1 flex-col items-center justify-center">
-                {added ? <Light /> : <AddLight />}
+            <div
+                className="relative flex h-full flex-1 flex-col items-center justify-center"
+                onClick={() => setAdded(v => !v)}
+            >
+                {added ? <Light name="Living room" /> : <AddLight />}
             </div>
         </div>
     );
@@ -29,7 +33,7 @@ export default Home;
 const AddLight = () => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
-            <Dots />
+            <Dots purple={true} />
             <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
             </div>
@@ -58,7 +62,7 @@ const AddLight = () => {
                 src="/add-border.svg"
                 className=" absolute h-full  w-full"
             />
-            <div className="absolute h-[96%] w-[96%] translate-x-[2%] translate-y-[2%]">
+            <div className="absolute h-[97%] w-[97%] translate-x-[1.5%] translate-y-[1.5%]">
                 <img
                     alt=""
                     src={'/NOISE.png'}
@@ -106,8 +110,13 @@ const AddLight = () => {
     );
 };
 
-const Dots = () => (
-    <div className="dots center-absolute absolute h-[150%] w-screen">
+const Dots = (props: { purple?: boolean }) => (
+    <div
+        className={clsx('center-absolute absolute h-[150%] w-screen', {
+            dots: props.purple,
+            'dots-purple': !props.purple,
+        })}
+    >
         <div
             className="absolute h-full w-full blur-xl"
             style={{
@@ -125,18 +134,56 @@ const Dots = () => (
     </div>
 );
 
-const Light = () => {
-    const [color] = useState('#7527d3');
+const Light = (props: { name: string }) => {
+    const [color] = useState('#5F00A9');
     return (
         <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
-            <div className="add-light-bg-gradient  absolute h-[200%] w-[200%]"></div>
+            <div className="absolute bottom-0 z-10 translate-y-[125%] text-xl text-white/70">
+                {props.name}
+            </div>
+            <Dots />
 
+            <div
+                className="add-light-bg-gradient absolute h-full w-full overflow-hidden rounded-md"
+                style={{
+                    background:
+                        'linear-gradient(135deg, #FFF -19.54%, rgba(255, 255, 255, 0.00) 116.3%)',
+                }}
+            >
+                <div className="h-full w-full bg-white/30"></div>
+            </div>
+            <div
+                className="add-light-bg-gradient pointer-events-none absolute h-[200%] w-[200%] -translate-x-1/4 -translate-y-1/4 opacity-50 blur-[120px]"
+                style={{
+                    background:
+                        'conic-gradient(from 90deg at 50% 50%,' +
+                        'rgba(82, 0, 255, 0.00) 110.62499642372131deg,' +
+                        'rgba(143, 0, 255, 0.38) 206.25000715255737deg,' +
+                        'rgba(77, 0, 203, 0.30) 333.7499928474426deg)',
+                }}
+            ></div>
             <img
                 alt=""
-                src="/add-border.svg"
+                src="/added-border.svg"
                 className=" absolute h-full  w-full"
             />
-            <div className="absolute h-[96%] w-[96%] translate-x-[2%] translate-y-[2%]">
+            <div className="absolute h-[97%] w-[97%] translate-x-[1.5%] translate-y-[1.5%]">
+                <div
+                    className="absolute h-full w-full rounded-md"
+                    style={{
+                        background: color,
+                    }}
+                ></div>
+                <div
+                    className="absolute h-full w-full rounded-md blur-md"
+                    style={{
+                        background:
+                            'conic-gradient(from 180deg at 50% 50%,' +
+                            'rgba(82, 0, 255, 0.00) 110.62499642372131deg,' +
+                            '#8F00FF 206.25000715255737deg,' +
+                            'rgba(77, 0, 203, 0.79) 333.7499928474426deg)',
+                    }}
+                ></div>
                 <img
                     alt=""
                     src={'/NOISE.png'}
@@ -149,15 +196,10 @@ const Light = () => {
                 />
                 <img
                     alt=""
-                    src="/add-border.svg"
-                    className="absolute h-full w-full rounded-md shadow-inner shadow-xl shadow-white"
+                    src="/added-border.svg"
+                    className="add-light-inner-shadow absolute h-full w-full rounded-md"
                 />
-                <div className="add-light-bg  absolute h-full w-full"></div>
-                <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
-                    <span className="plus-icon">+</span>
-                </div>
             </div>
-            <div className="add-light-bg absolute h-full w-full"></div>
         </div>
     );
 };
