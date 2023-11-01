@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { NextPage } from 'next';
 
-import MacTrafficLights from '~/components/traffic-lights';
+import { MacTrafficLights } from '~/components/traffic-lights';
 
 const Home: NextPage = () => {
     const [added] = useState(false);
@@ -29,10 +29,29 @@ export default Home;
 const AddLight = () => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
-            <div className=" add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
+            <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
             </div>
-            <div className="add-light-bg-gradient  absolute h-full w-full"></div>
+            <div
+                className="add-light-bg-gradient absolute h-full w-full blur-[30px]"
+                style={{
+                    background:
+                        `conic-gradient(from 44deg at 20% 45%,` +
+                        'rgba(255, 255, 255, 0) 106deg,' +
+                        'rgba(161, 161, 161, 0.38) 194deg,' +
+                        'rgba(255, 255, 255, 0.3) 333.7499928474426deg)',
+                }}
+            ></div>
+            <div
+                className="add-light-bg-gradient pointer-events-none absolute h-[200%] w-[200%] -translate-x-1/4 -translate-y-1/4 opacity-50 blur-[120px]"
+                style={{
+                    background:
+                        `conic-gradient(from 44deg at 50% 55%,` +
+                        'rgba(255, 255, 255, 0) 106deg,' +
+                        'rgba(161, 161, 161, 0.38) 194deg,' +
+                        'rgba(255, 255, 255, 0.3) 333.7499928474426deg)',
+                }}
+            ></div>
             <img
                 alt=""
                 src="/add-border.svg"
@@ -54,6 +73,68 @@ const AddLight = () => {
                     src="/add-border.svg"
                     className="add-light-inner-shadow absolute h-full w-full rounded-md"
                 />
+                <div
+                    className="absolute h-full w-full blur-md"
+                    style={{
+                        background:
+                            'conic-gradient(from 43deg at 55.2% 53.52%,' +
+                            'rgba(223, 223, 223, 0) 110.62499642372131deg,' +
+                            'rgba(220, 217, 225, 0.05) 183.23912143707275deg,' +
+                            'rgba(250, 250, 250, 0.08) 206.25000715255737deg,' +
+                            'rgba(223, 223, 223, 0.06) 308.52407455444336deg,' +
+                            'rgba(219, 216, 225, 0.06) 333.7499928474426deg)',
+                    }}
+                ></div>
+
+                <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
+                    <span
+                        className="text-gradient text-clip"
+                        style={{
+                            backgroundImage:
+                                'radial-gradient(64.86% 92.48% at 32.56% 36.72%,' +
+                                '#fff 0%,' +
+                                'rgba(255, 255, 255, 0.42) 22.87%,' +
+                                'rgba(255, 255, 255, 0) 100%)',
+                        }}
+                    >
+                        +
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Light = () => {
+    const [color] = useState('#7527d3');
+    return (
+        <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
+            <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
+                Add Light
+            </div>
+            <div className="add-light-bg-gradient  absolute h-[200%] w-[200%]"></div>
+
+            <img
+                alt=""
+                src="/add-border.svg"
+                className=" absolute h-full  w-full"
+            />
+            <div className="absolute h-[96%] w-[96%] translate-x-[2%] translate-y-[2%]">
+                <img
+                    alt=""
+                    src={'/NOISE.png'}
+                    className="absolute h-full w-full rounded-md"
+                />
+                <img
+                    alt=""
+                    src="/noise/2.png"
+                    className="absolute h-full w-full rounded-md"
+                />
+                <img
+                    alt=""
+                    src="/add-border.svg"
+                    className="absolute h-full w-full rounded-md shadow-inner shadow-xl shadow-white"
+                />
                 <div className="add-light-bg  absolute h-full w-full"></div>
                 <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
                     <span className="plus-icon">+</span>
@@ -63,27 +144,3 @@ const AddLight = () => {
         </div>
     );
 };
-
-const Light = () => {
-    const [color] = useState('#7527d3');
-    return (
-        <div className="one border-white/35 relative aspect-square h-64 cursor-pointer overflow-hidden rounded-md border shadow-inner  shadow-black transition-transform hover:scale-[101%]">
-            <div
-                className="noise absolute h-full w-full"
-                style={{
-                    background: color,
-                }}
-            ></div>
-            <div
-                className="noise absolute h-full w-full opacity-60 blur-lg hue-rotate-[25deg]"
-                style={{
-                    background: `radial-gradient(transparent 50%, ${color} 100%)`,
-                }}
-            ></div>
-
-            <Noise />
-        </div>
-    );
-};
-
-const Noise = () => <></>;
