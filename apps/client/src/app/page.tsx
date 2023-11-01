@@ -89,7 +89,7 @@ const AddLight = () => {
 
                 <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
                     <span
-                        className="text-gradient text-clip"
+                        className="text-gradient select-none text-clip"
                         style={{
                             backgroundImage:
                                 'radial-gradient(64.86% 92.48% at 32.56% 36.72%,' +
@@ -109,7 +109,14 @@ const AddLight = () => {
 const Dots = () => (
     <div className="dots center-absolute absolute h-[150%] w-screen">
         <div
-            className="h-full w-full blur-2xl"
+            className="absolute h-full w-full blur-xl"
+            style={{
+                background:
+                    'linear-gradient(transparent black, 0 50%, black 100%)',
+            }}
+        ></div>
+        <div
+            className="absolute h-full w-full blur-xl"
             style={{
                 background:
                     'linear-gradient(90deg, transparent 0, black 50%, transparent 100%)',
