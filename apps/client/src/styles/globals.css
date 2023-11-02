@@ -57,9 +57,9 @@
 
 .add-light-text {
     background: linear-gradient(
-        98deg,
+        120deg,
         #fff 11.91%,
-        rgba(255, 255, 255, 0) 101.97%
+        rgba(255, 255, 255, 0) 75.97%
     );
     background-clip: text;
     -webkit-background-clip: text;

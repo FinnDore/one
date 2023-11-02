@@ -11,10 +11,7 @@ const Home: NextPage = () => {
     const [added, setAdded] = useState(true);
     return (
         <div className="flex h-screen w-screen flex-col rounded-lg border border-white/25 bg-black">
-            <div
-                className="h-min w-screen ps-4 pt-4"
-                data-tauri-drag-region="true"
-            >
+            <div className="full h-min ps-4 pt-4" data-tauri-drag-region="true">
                 <MacTrafficLights />
             </div>
 
@@ -32,7 +29,7 @@ export default Home;
 
 const AddLight = () => {
     return (
-        <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
+        <div className="group relative aspect-square h-96 cursor-pointer select-none transition-all duration-300 hover:scale-105">
             <Dots purple={true} />
             <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
@@ -93,7 +90,7 @@ const AddLight = () => {
 
                 <div className="absolute grid h-full w-full place-content-center text-7xl transition-all group-hover:scale-110">
                     <span
-                        className="text-gradient select-none text-clip"
+                        className="text-gradient text-clip"
                         style={{
                             backgroundImage:
                                 'radial-gradient(64.86% 92.48% at 32.56% 36.72%,' +
@@ -111,12 +108,16 @@ const AddLight = () => {
 };
 
 const Dots = (props: { purple?: boolean }) => (
-    <div
-        className={clsx('center-absolute absolute h-[150%] w-screen', {
-            dots: props.purple,
-            'dots-purple': !props.purple,
-        })}
-    >
+    <div className="center-absolute transform-all pointer-events-none absolute h-[150%] w-screen">
+        <div
+            className={clsx(
+                'absolute h-full w-[200%] -translate-x-1/4 bg-repeat transition-all duration-300 group-hover:scale-[.85]',
+                {
+                    dots: props.purple,
+                    'dots-purple': !props.purple,
+                },
+            )}
+        ></div>
         <div
             className="absolute h-full w-full blur-xl"
             style={{
@@ -137,7 +138,7 @@ const Dots = (props: { purple?: boolean }) => (
 const Light = (props: { name: string }) => {
     const [color] = useState('#5F00A9');
     return (
-        <div className="group relative aspect-square h-96 cursor-pointer transition-all hover:scale-105">
+        <div className="group relative aspect-square h-96 cursor-pointer select-none transition-all duration-300 hover:scale-105">
             <div className="absolute bottom-0 z-10 translate-y-[125%] text-xl text-white/70">
                 {props.name}
             </div>
@@ -169,7 +170,7 @@ const Light = (props: { name: string }) => {
             />
             <div className="absolute h-[97%] w-[97%] translate-x-[1.5%] translate-y-[1.5%]">
                 <div
-                    className="absolute h-full w-full rounded-md"
+                    className="absolute h-full w-full rounded-md opacity-95"
                     style={{
                         background: color,
                     }}
@@ -192,6 +193,11 @@ const Light = (props: { name: string }) => {
                 <img
                     alt=""
                     src="/noise/2.png"
+                    className="absolute h-full w-full rounded-md"
+                />
+                <img
+                    alt=""
+                    src="/noise/3.png"
                     className="absolute h-full w-full rounded-md"
                 />
                 <img
