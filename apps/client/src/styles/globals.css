@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.noise::after {
+    background-repeat: repeat;
+    pointer-events: none;
+    content: ' ';
+    background-image: url(/NOISE.webp);
+    background-position: 0 0;
+    background-size: 150px;
+    opacity: 0.2;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block;
+    position: absolute;
+    height: 100%;
+}
+
+@media (prefers-color-scheme: light) {
+    .noise::after {
+        filter: invert(1);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.9;
+        transform: scale(0.97);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0.9;
+        transform: scale(0.97);
+    }
+}
+
+.center-absolute {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+.add-light-inner-shadow {
+    box-shadow: 0px 0px 12px 0px #fff inset;
+}
+
+.text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.add-light-text {
+    background: linear-gradient(
+        120deg,
+        #fff 11.91%,
+        rgba(255, 255, 255, 0) 75.97%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.dots {
+    background: url('/dots.svg');
+}
+.dots-purple {
+    background: url('/dots-purple.svg');
+}

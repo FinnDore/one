@@ -8,7 +8,7 @@ const RootLayout = ({ children }: { children: ReactElement }) => {
     return (
         <html>
             <head />
-            <body>{children}</body>
+            <body className="h-screen">{children}</body>
         </html>
     );
 };
