@@ -16,7 +16,7 @@ const Home: NextPage = () => {
             </div>
 
             <div
-                className="relative flex h-full flex-1 flex-col items-center justify-center"
+                className="relative flex h-full flex-1 flex-col items-center justify-center overflow-x-clip"
                 onClick={() => setAdded(v => !v)}
             >
                 {added ? <Light name="Living room" /> : <AddLight />}
