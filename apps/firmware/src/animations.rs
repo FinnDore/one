@@ -125,4 +125,9 @@ impl AnimationSet {
             current_index: 0,
         }
     }
+
+    pub fn setColor(&mut self, color: RGBW<u8>) {
+        self.folowing_static_color.set_color(color);
+        self.current_index = 1;
+    }
 }

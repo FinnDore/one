@@ -183,7 +183,7 @@ async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'stati
 
     loop {
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
-        socket.set_timeout(Some(Duration::from_secs(10)));
+        socket.set_timeout(Some(Duration::from_secs(600)));
 
         // control.gpio_set(0, false).await;
         info!("Listening on TCP:1234...");
@@ -208,17 +208,38 @@ async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'stati
                 }
             };
 
-            info!("rxd {}", from_utf8(&buf[..n]).unwrap());
-
-            match socket.write_all(&buf[..n]).await {
-                Ok(()) => {}
-                Err(e) => {
-                    warn!("write error: {:?}", e);
-                    break;
-                }
-            };
+            if let Ok(hex) = from_utf8(&buf[..n]) {
+                info!(" {}", hex);
+                STATE.lock(|cur| {
+                    let mut animation_set = cur.borrow_mut();
+                    animation_set.setColor(hexToRgba(hex));
+                });
+                info!("color changed to {}", hex);
+            } else {
+                warn!("invalid UTF-8");
+            }
         }
     }
+}
+
+fn hexToRgba(hex: &str) -> smart_leds::RGBW<u8> {
+    let chars = hex.trim_start_matches("#").trim_start_matches("0x");
+
+    let (r, gb) = chars.split_at(2);
+    let (g, b) = gb.split_at(2);
+
+    info!(
+        "r: {}, g: {}, b: {}",
+        u8::from_str_radix(r, 16).expect("invalid r"),
+        u8::from_str_radix(g, 16).expect("invalid g"),
+        u8::from_str_radix(b.trim_end(), 16).expect("invalid b")
+    );
+    RGBW::new_alpha(
+        u8::from_str_radix(r, 16).expect("invalid r"),
+        u8::from_str_radix(g, 16).expect("invalid g"),
+        u8::from_str_radix(b.trim_end(), 16).expect("invalid b"),
+        smart_leds::White(0),
+    )
 }
 
 #[embassy_executor::main]
