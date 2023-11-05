@@ -15,13 +15,13 @@ use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 use embassy_net::tcp::TcpSocket;
 use embassy_net::{Config, IpAddress, Ipv4Address, Ipv4Cidr, StackResources};
-use embassy_rp::gpio::{Input, Level, Output, Pull};
+use embassy_rp::gpio::{AnyPin, Input, Level, Output, Pull};
 use embassy_rp::interrupt::{InterruptExt, Priority};
 use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_23, PIN_25, PIO0};
-use embassy_rp::pio::{Common, InterruptHandler, Pio, StateMachine};
+use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
+use embassy_rp::pio::{Common, InterruptHandler, Irq, Pio, StateMachine};
 use embassy_rp::{bind_interrupts, interrupt};
-use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, ThreadModeRawMutex};
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
@@ -40,10 +40,10 @@ static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 static EXECUTOR0: InterruptExecutor = InterruptExecutor::new();
+static EXECUTOR2: InterruptExecutor = InterruptExecutor::new();
+static EXECUTOR3: StaticCell<Executor> = StaticCell::new();
 
-static EXECUTOR2: StaticCell<Executor> = StaticCell::new();
-
-static STATE: Mutex<ThreadModeRawMutex, RefCell<AnimationSet>> =
+static STATE: Mutex<CriticalSectionRawMutex, RefCell<AnimationSet>> =
     Mutex::new(RefCell::new(AnimationSet::new()));
 
 #[interrupt]
@@ -116,44 +116,48 @@ async fn net_task(stack: &'static embassy_net::Stack<cyw43::NetDriver<'static>>)
     stack.run().await
 }
 
-#[embassy_executor::main]
-async fn main(_main_spawner: Spawner) {
-    debug!("Program started");
-    let p = embassy_rp::init(Default::default());
+struct TcpTaskOpts {
+    pin_23: PIN_23,
+    pin_24: PIN_24,
+    pin_25: PIN_25,
+    pin_29: PIN_29,
+    dma_ch0: DMA_CH0,
+    sm0: StateMachine<'static, PIO0, 0>,
+    irq0: Irq<'static, PIO0, 0>,
+}
+
+async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'static, PIO0>) -> ! {
+    info!("tcp task started");
 
     // WIFI
-    let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
+    let firmware = include_bytes!("../cyw43-firmware/43439A0.bin");
     let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
 
-    let mut pio = Pio::new(p.PIO0, Irqs);
-    let pwr = Output::new(p.PIN_23, Level::Low);
-    let cs = Output::new(p.PIN_25, Level::High);
+    let pwr = Output::new(opts.pin_23, Level::Low);
+    let cs = Output::new(opts.pin_25, Level::High);
     let spi = PioSpi::new(
-        &mut pio.common,
-        pio.sm0,
-        pio.irq0,
+        &mut common,
+        opts.sm0,
+        opts.irq0,
         cs,
-        p.PIN_24,
-        p.PIN_29,
-        p.DMA_CH0,
+        opts.pin_24,
+        opts.pin_29,
+        opts.dma_ch0,
     );
 
     let state = make_static!(cyw43::State::new());
-    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw).await;
-    _main_spawner
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, firmware).await;
+    spawner
         .spawn(wifi_task(runner))
         .expect("Wifi task failed to spawn");
+
     control.init(clm).await;
     control
         .set_power_management(cyw43::PowerManagementMode::PowerSave)
         .await;
 
     let config = Config::dhcpv4(Default::default());
-    // let config = embassy_net::Config::ipv4_static(embassy_net::StaticConfigV4 {
-    //     address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 69, 2), 24),
-    //     dns_servers: Vec::new(),
-    //     gateway: Some(Ipv4Address::new(10, 10, 10, 1)),
-    // });
+
     // Generate random seed
     let seed = 0x0123_4567_89ab_cdef; // chosen by fair dice roll. guarenteed to be random.
                                       // Init network stack
@@ -163,7 +167,8 @@ async fn main(_main_spawner: Spawner) {
         make_static!(StackResources::<2>::new()),
         seed
     ));
-    _main_spawner
+
+    spawner
         .spawn(net_task(stack))
         .expect("net task failed to spawn");
     loop {
@@ -224,13 +229,42 @@ async fn main(_main_spawner: Spawner) {
             };
         }
     }
+}
 
-    let executor = EXECUTOR2.init(Executor::new());
-    executor.run(|spawner| {
-        spawner
-            .spawn(button_task(p.PIN_15))
-            .expect("Button task failed to spawn");
-    });
+#[embassy_executor::main]
+async fn main(main_spawner: Spawner) {
+    debug!("Program started");
+    let p = embassy_rp::init(Default::default());
+
+    let mut pio = Pio::new(p.PIO0, Irqs);
+
+    interrupt::SWI_IRQ_1.set_priority(Priority::P0);
+    let s = EXECUTOR0.start(interrupt::SWI_IRQ_1);
+    s.spawn(button_task(p.PIN_15))
+        .expect("Button task failed to spawn");
+
+    // interrupt::SWI_IRQ_2.set_priority(Priority::P0);
+    // let pio0Ref = AnyPin::from(p.PIO0).into_ref();
+
+    // spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
+    //     let executor1 = EXECUTOR1.init(Executor::new());
+    //     executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_16, p.DMA_CH0))));
+    // });
+
+    tcp_task(
+        main_spawner,
+        TcpTaskOpts {
+            pin_23: p.PIN_23,
+            pin_24: p.PIN_24,
+            pin_25: p.PIN_25,
+            pin_29: p.PIN_29,
+            dma_ch0: p.DMA_CH0,
+            sm0: pio.sm0,
+            irq0: pio.irq0,
+        },
+        pio.common,
+    )
+    .await;
 }
 
 async fn wait_for_button_press(button: &mut Input<'_, PIN_15>) {
