@@ -52,18 +52,8 @@ unsafe fn SWI_IRQ_1() {
 }
 
 #[embassy_executor::task]
-pub async fn color_task(pio0: PIO0, data_pin: embassy_rp::peripherals::PIN_16, dma: DMA_CH0) {
+pub async fn color_task(mut ws2812: Ws2812<'static, PIO0, 1, NUM_LEDS>) {
     debug!("Color task started");
-    let Pio {
-        mut common, sm0, ..
-    } = Pio::new(pio0, Irqs);
-    let mut ws2812 = Ws2812::new(
-        &mut common,
-        sm0,
-        dma,
-        data_pin,
-        [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
-    );
 
     loop {
         let current_state = STATE.lock(|cur| {
@@ -244,12 +234,21 @@ async fn main(main_spawner: Spawner) {
         .expect("Button task failed to spawn");
 
     // interrupt::SWI_IRQ_2.set_priority(Priority::P0);
-    // let pio0Ref = AnyPin::from(p.PIO0).into_ref();
-
-    // spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
-    //     let executor1 = EXECUTOR1.init(Executor::new());
-    //     executor1.run(|spawner| unwrap!(spawner.spawn(color_task(p.PIO0, p.PIN_16, p.DMA_CH0))));
-    // });
+    let mut ws2812 = Ws2812::new(
+        &mut pio.common,
+        pio.sm1,
+        p.DMA_CH1,
+        p.PIN_16,
+        [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
+    );
+    spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
+        let executor1 = EXECUTOR1.init(Executor::new());
+        executor1.run(|spawner| {
+            spawner
+                .spawn(color_task(ws2812))
+                .expect("Color task failed to spawn")
+        });
+    });
 
     tcp_task(
         main_spawner,
@@ -275,20 +274,3 @@ async fn wait_for_button_press(button: &mut Input<'_, PIN_15>) {
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => InterruptHandler<PIO0>;
 });
-
-// let mut ws2812: Ws2812<'_, PIO0, 0, NUM_LEDS> = Ws2812::new(
-//     &mut pio.common,
-//     pio.sm0,
-//     p.DMA_CH0,
-//     p.PIN_16,
-//     [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
-// );
-
-// spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
-//     let executor1 = EXECUTOR1.init(Executor::new());
-//     executor1.run(|spawner| unwrap!(spawner.spawn(color_task(ws2812))));
-// });
-
-// interrupt::SWI_IRQ_1.set_priority(Priority::P0);
-// let s = EXECUTOR0.start(interrupt::SWI_IRQ_1);
-// s.spawn(wifi_task2()).expect("Wifi task failed to spawn");
