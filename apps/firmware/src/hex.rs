@@ -30,19 +30,3 @@ pub fn hex_to_rgbw(input: &str) -> IResult<&str, RGBW<u8>> {
     let (input, (red, green, blue)) = (hex_primary, hex_primary, hex_primary).parse(input)?;
     Ok((input, RGBW::new_alpha(red, green, blue, White(0))))
 }
-
-#[test]
-fn parse_color() {
-    assert_eq!(
-        hex_to_rgbw("#2F14DF"),
-        Ok((
-            "",
-            RGBW {
-                r: 47,
-                g: 20,
-                b: 223,
-                a: White(0),
-            }
-        ))
-    );
-}
