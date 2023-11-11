@@ -18,7 +18,7 @@ fn from_hex(input: &str) -> Result<u8, core::num::ParseIntError> {
 }
 
 fn is_hex_digit(c: char) -> bool {
-    c.is_digit(16)
+    c.is_ascii_hexdigit()
 }
 
 fn hex_primary(input: &str) -> IResult<&str, u8> {
@@ -34,13 +34,14 @@ pub fn hex_to_rgbw(input: &str) -> IResult<&str, RGBW<u8>> {
 #[test]
 fn parse_color() {
     assert_eq!(
-        hex_color("#2F14DF"),
+        hex_to_rgbw("#2F14DF"),
         Ok((
             "",
-            Color {
-                red: 47,
-                green: 20,
-                blue: 223,
+            RGBW {
+                r: 47,
+                g: 20,
+                b: 223,
+                a: White(0),
             }
         ))
     );

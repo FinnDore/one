@@ -16,18 +16,18 @@ use cyw43_pio::PioSpi;
 use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 use embassy_net::tcp::TcpSocket;
-use embassy_net::{Config, IpAddress, Ipv4Address, Ipv4Cidr, StackResources};
-use embassy_rp::gpio::{AnyPin, Input, Level, Output, Pull};
+use embassy_net::{Config, StackResources};
+use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::interrupt::{InterruptExt, Priority};
 use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::{Common, InterruptHandler, Irq, Pio, StateMachine};
 use embassy_rp::{bind_interrupts, interrupt};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, ThreadModeRawMutex};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
-use heapless::Vec;
+
 use smart_leds::RGBW;
 use static_cell::{make_static, StaticCell};
 
@@ -221,7 +221,7 @@ async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'stati
                 STATE.lock(|cur| {
                     let mut animation_set = cur.borrow_mut();
 
-                    animation_set.setColor(color);
+                    animation_set.set_color(color);
                 });
                 info!("color changed to {}", hex);
             } else {
@@ -244,7 +244,7 @@ async fn main(main_spawner: Spawner) {
         .expect("Button task failed to spawn");
 
     // interrupt::SWI_IRQ_2.set_priority(Priority::P0);
-    let mut ws2812 = Ws2812::new(
+    let ws2812 = Ws2812::new(
         &mut pio.common,
         pio.sm1,
         p.DMA_CH1,
