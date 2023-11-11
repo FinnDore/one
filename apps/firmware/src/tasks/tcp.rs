@@ -1,29 +1,21 @@
-use core::cell::RefCell;
 use core::str::from_utf8;
 
-use animations::AnimationSet;
-use hex::hex_to_rgbw;
+use embassy_executor::Spawner;
 
 use cyw43_pio::PioSpi;
 use defmt::*;
-use embassy_executor::{Executor, InterruptExecutor, Spawner};
 use embassy_net::tcp::TcpSocket;
 use embassy_net::{Config, StackResources};
-use embassy_rp::gpio::{Input, Level, Output, Pull};
-use embassy_rp::interrupt::{InterruptExt, Priority};
-use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
-use embassy_rp::pio::{Common, InterruptHandler, Irq, Pio, StateMachine};
-use embassy_rp::{bind_interrupts, interrupt};
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
+use embassy_rp::gpio::{Level, Output};
+
+use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
+use embassy_rp::pio::{Common, Irq, StateMachine};
+
 use embassy_time::{Duration, Timer};
 
-use smart_leds::RGBW;
-use static_cell::{make_static, StaticCell};
+use static_cell::make_static;
 
-use crate::ws2812::Ws2812;
-use crate::{animations, hex, STATE};
+use crate::{utils::hex::hex_to_rgbw, STATE};
 use {defmt_rtt as _, panic_probe as _};
 
 pub struct TcpTaskOpts {
@@ -121,7 +113,7 @@ pub async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'s
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
         socket.set_timeout(Some(Duration::from_secs(600)));
 
-        // control.gpio_set(0, false).await;
+        control.gpio_set(0, false).await;
         info!("Listening on TCP:1234...");
         if let Err(e) = socket.accept(1234).await {
             warn!("accept error: {:?}", e);
@@ -129,7 +121,7 @@ pub async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'s
         }
 
         info!("Received connection from {:?}", socket.remote_endpoint());
-        // control.gpio_set(0, true).await;
+        control.gpio_set(0, true).await;
 
         loop {
             let n = match socket.read(&mut buf).await {
@@ -144,25 +136,30 @@ pub async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'s
                 }
             };
 
-            if let Ok(hex) = from_utf8(&buf[..n]) {
-                let parse_result = hex_to_rgbw(hex);
-
-                if parse_result.is_err() {
-                    warn!("invalid hex");
-                    continue;
+            match from_utf8(&buf[..n]) {
+                Ok(res) => {
+                    info!("received: {}", res);
+                    handle(res);
                 }
-
-                let (_, color) = parse_result.unwrap();
-                info!(" {}", hex);
-                STATE.lock(|cur| {
-                    let mut animation_set = cur.borrow_mut();
-
-                    animation_set.set_color(color);
-                });
-                info!("color changed to {}", hex);
-            } else {
-                warn!("invalid UTF-8");
+                Err(_) => warn!("invalid UTF-8"),
             }
         }
     }
+}
+
+fn handle(req: &str) {
+    let parse_result = hex_to_rgbw(req);
+
+    if parse_result.is_err() {
+        warn!("invalid hex");
+        return;
+    }
+
+    let (_, color) = parse_result.unwrap();
+    STATE.lock(|cur| {
+        let mut animation_set = cur.borrow_mut();
+
+        animation_set.set_color(color);
+    });
+    info!("color changed to {}{}{}", color.r, color.g, color.b);
 }

@@ -1,20 +1,8 @@
-use cyw43_pio::PioSpi;
 use defmt::*;
-use embassy_executor::{Executor, InterruptExecutor, Spawner};
-use embassy_net::tcp::TcpSocket;
-use embassy_net::{Config, StackResources};
-use embassy_rp::gpio::{Input, Level, Output, Pull};
-use embassy_rp::interrupt::{InterruptExt, Priority};
-use embassy_rp::multicore::{spawn_core1, Stack};
-use embassy_rp::peripherals::{DMA_CH0, PIN_15, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
-use embassy_rp::pio::{Common, InterruptHandler, Irq, Pio, StateMachine};
-use embassy_rp::{bind_interrupts, interrupt};
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
-use embassy_time::{Duration, Timer};
 
-use smart_leds::RGBW;
-use static_cell::StaticCell;
+use embassy_rp::peripherals::PIO0;
+
+use embassy_time::{Duration, Timer};
 
 use crate::ws2812::Ws2812;
 use crate::{NUM_LEDS, STATE};
