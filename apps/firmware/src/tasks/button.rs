@@ -4,7 +4,7 @@ use embassy_rp::gpio::{Input, Pull};
 
 use embassy_rp::peripherals::PIN_15;
 
-use crate::STATE;
+use crate::shared::STATE;
 
 #[embassy_executor::task]
 pub async fn button_task(button_pin: PIN_15) {

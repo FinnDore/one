@@ -1,4 +1,4 @@
-
+use defmt::debug;
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -92,13 +92,16 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         let mut words = [u32::MAX; N];
 
         for i in 0..N {
-            let word = (u32::from(colors[i].a.0) << 32)
+            words[i] = u32::MAX;
+
+            let word = (u32::MIN)
                 | (u32::from(colors[i].g) << 24)
                 | (u32::from(colors[i].r) << 16)
                 | (u32::from(colors[i].b) << 8);
             words[i] = word;
         }
 
+        debug!("Writing {:b} words", words[0]);
         // DMA transfer
         self.sm.tx().dma_push(self.dma.reborrow(), &words).await;
     }
