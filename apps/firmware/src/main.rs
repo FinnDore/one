@@ -8,9 +8,9 @@ mod tasks;
 mod utils;
 mod ws2812;
 
-use core::cell::RefCell;
 
-use animations::AnimationSet;
+
+
 
 use tasks::tcp::tcp_task;
 
@@ -18,18 +18,18 @@ use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 
 use embassy_rp::interrupt::{InterruptExt, Priority};
-use embassy_rp::multicore::{spawn_core1, Stack};
+use embassy_rp::multicore::{Stack};
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::{bind_interrupts, interrupt};
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
+
+
 
 use smart_leds::RGBW;
 use static_cell::StaticCell;
 
 use crate::shared::NUM_LEDS;
-use crate::tasks::button::button_task;
+
 use crate::tasks::color::color_task;
 use crate::tasks::tcp::TcpTaskOpts;
 use crate::ws2812::Ws2812;
