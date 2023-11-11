@@ -17,9 +17,9 @@ pub async fn color_task(mut ws2812: Ws2812<'static, PIO0, 1, NUM_LEDS>) {
             let current_animation = animation_set.current_animation();
 
             if current_animation.is_static() {
-                return *current_animation.current_frame();
+                *current_animation.current_frame()
             } else {
-                return *current_animation.next_frame();
+                *current_animation.next_frame()
             }
         });
 
