@@ -149,17 +149,12 @@ pub async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'s
 
 fn handle(req: &str) {
     let parse_result = hex_to_rgbw(req);
-
     if parse_result.is_err() {
         warn!("invalid hex");
         return;
     }
 
     let (_, color) = parse_result.unwrap();
-    STATE.lock(|cur| {
-        let mut animation_set = cur.borrow_mut();
-
-        animation_set.set_color(color);
-    });
+    STATE.lock(|cur| cur.borrow_mut().set_color(color));
     info!("color changed to {}{}{}", color.r, color.g, color.b);
 }
