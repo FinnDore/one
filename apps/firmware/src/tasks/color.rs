@@ -4,8 +4,8 @@ use embassy_rp::peripherals::PIO0;
 
 use embassy_time::{Duration, Timer};
 
+use crate::shared::{NUM_LEDS, STATE};
 use crate::ws2812::Ws2812;
-use crate::{NUM_LEDS, STATE};
 
 #[embassy_executor::task]
 pub async fn color_task(mut ws2812: Ws2812<'static, PIO0, 1, NUM_LEDS>) {
@@ -24,6 +24,6 @@ pub async fn color_task(mut ws2812: Ws2812<'static, PIO0, 1, NUM_LEDS>) {
         });
 
         ws2812.write_all_colors(current_state).await;
-        Timer::after(Duration::from_millis(50)).await;
+        Timer::after(Duration::from_millis(1000)).await;
     }
 }

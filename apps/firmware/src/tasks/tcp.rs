@@ -15,7 +15,8 @@ use embassy_time::{Duration, Timer};
 
 use static_cell::make_static;
 
-use crate::{utils::hex::hex_to_rgbw, STATE};
+use crate::shared::STATE;
+use crate::utils::hex::hex_to_rgbw;
 use {defmt_rtt as _, panic_probe as _};
 
 pub struct TcpTaskOpts {
