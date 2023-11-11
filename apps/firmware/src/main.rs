@@ -26,12 +26,9 @@ use embassy_rp::{bind_interrupts, interrupt};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_time::{Duration, Timer};
-use embedded_io_async::Write;
 
 use smart_leds::RGBW;
 use static_cell::{make_static, StaticCell};
-
-// extern crate alloc;
 
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
