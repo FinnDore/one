@@ -8,22 +8,16 @@ mod tasks;
 mod utils;
 mod ws2812;
 
-
-
-
-
 use tasks::tcp::tcp_task;
 
 use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 
 use embassy_rp::interrupt::{InterruptExt, Priority};
-use embassy_rp::multicore::{Stack};
+use embassy_rp::multicore::Stack;
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::{bind_interrupts, interrupt};
-
-
 
 use smart_leds::RGBW;
 use static_cell::StaticCell;
