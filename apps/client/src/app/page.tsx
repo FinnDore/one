@@ -9,17 +9,27 @@ import { MacTrafficLights } from '~/components/traffic-lights';
 
 const Home: NextPage = () => {
     const [added, setAdded] = useState(true);
+    const [color, setColor] = useState('#5F00A9');
     return (
         <div className="flex h-screen w-screen flex-col rounded-lg border border-white/25 bg-black">
             <div className="full h-min ps-4 pt-4" data-tauri-drag-region="true">
                 <MacTrafficLights />
             </div>
+            <input
+                type="color"
+                className="absolute"
+                onChange={e => setColor(e.target.value)}
+            />
 
             <div
                 className="relative flex h-full flex-1 flex-col items-center justify-center overflow-x-clip"
                 onClick={() => setAdded(v => !v)}
             >
-                {added ? <Light name="Living room" /> : <AddLight />}
+                {added ? (
+                    <Light name="Living room" color={color} />
+                ) : (
+                    <AddLight />
+                )}
             </div>
         </div>
     );
@@ -135,8 +145,7 @@ const Dots = (props: { purple?: boolean }) => (
     </div>
 );
 
-const Light = (props: { name: string }) => {
-    const [color] = useState('#5F00A9');
+const Light = (props: { name: string; color: string }) => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer select-none transition-all duration-300 hover:scale-105">
             <div className="absolute bottom-0 z-10 translate-y-[125%] text-xl text-white/70">
@@ -172,7 +181,7 @@ const Light = (props: { name: string }) => {
                 <div
                     className="absolute h-full w-full rounded-md opacity-95"
                     style={{
-                        background: color,
+                        background: props.color,
                     }}
                 ></div>
                 <div
