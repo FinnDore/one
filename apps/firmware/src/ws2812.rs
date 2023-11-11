@@ -1,3 +1,4 @@
+
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -91,10 +92,10 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         let mut words = [u32::MAX; N];
 
         for i in 0..N {
-            let word = (u32::from(colors[i].g) << 32)
-                | (u32::from(colors[i].r) << 24)
-                | (u32::from(colors[i].b) << 16)
-                | (u32::from(colors[i].a.0) << 8);
+            let word = (u32::from(colors[i].a.0) << 32)
+                | (u32::from(colors[i].g) << 24)
+                | (u32::from(colors[i].r) << 16)
+                | (u32::from(colors[i].b) << 8);
             words[i] = word;
         }
 
