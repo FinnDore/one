@@ -3,12 +3,14 @@
 #![feature(type_alias_impl_trait)]
 
 mod animations;
+mod hex;
 mod ws2812;
 
 use core::cell::RefCell;
 use core::str::from_utf8;
 
 use animations::AnimationSet;
+use hex::hex_to_rgbw;
 
 use cyw43_pio::PioSpi;
 use defmt::*;
@@ -40,8 +42,6 @@ static mut CORE1_STACK: Stack<4096> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 static EXECUTOR0: InterruptExecutor = InterruptExecutor::new();
-static EXECUTOR2: InterruptExecutor = InterruptExecutor::new();
-static EXECUTOR3: StaticCell<Executor> = StaticCell::new();
 
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<AnimationSet>> =
     Mutex::new(RefCell::new(AnimationSet::new()));
@@ -209,10 +209,19 @@ async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'stati
             };
 
             if let Ok(hex) = from_utf8(&buf[..n]) {
+                let parse_result = hex_to_rgbw(hex);
+
+                if parse_result.is_err() {
+                    warn!("invalid hex");
+                    continue;
+                }
+
+                let (_, color) = parse_result.unwrap();
                 info!(" {}", hex);
                 STATE.lock(|cur| {
                     let mut animation_set = cur.borrow_mut();
-                    animation_set.setColor(hexToRgba(hex));
+
+                    animation_set.setColor(color);
                 });
                 info!("color changed to {}", hex);
             } else {
@@ -221,8 +230,6 @@ async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'stati
         }
     }
 }
-
-
 
 #[embassy_executor::main]
 async fn main(main_spawner: Spawner) {

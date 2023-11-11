@@ -57,6 +57,7 @@ rand = { version = "0.8.5", default-features = false }
 #async-trait = "0.1.73"
 #alloc-cortex-m = "0.4.0"
 
+nom = { version= "7", default-features = false }
 
 [patch.crates-io]
 lora-phy = { git = "https://github.com/embassy-rs/lora-phy", rev = "1323eccc1c470d4259f95f4f315d1be830d572a3"}
