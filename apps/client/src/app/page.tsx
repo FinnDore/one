@@ -6,6 +6,7 @@ import type { NextPage } from 'next';
 import clsx from 'clsx';
 
 import { MacTrafficLights } from '~/components/traffic-lights';
+import { commands } from '~/lazy-tauri-api/get-current';
 
 const Home: NextPage = () => {
     const [added, setAdded] = useState(true);
@@ -18,7 +19,10 @@ const Home: NextPage = () => {
             <input
                 type="color"
                 className="absolute"
-                onChange={e => setColor(e.target.value)}
+                onChange={e => {
+                    setColor(e.target.value);
+                    commands.set_color(e.target.value);
+                }}
             />
 
             <div
