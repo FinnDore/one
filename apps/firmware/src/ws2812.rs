@@ -94,7 +94,7 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         for i in 0..N {
             words[i] = u32::MAX;
 
-            let word = (u32::MIN)
+            let word = u32::from(colors[i].w)
                 | (u32::from(colors[i].g) << 24)
                 | (u32::from(colors[i].r) << 16)
                 | (u32::from(colors[i].b) << 8);

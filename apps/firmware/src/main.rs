@@ -20,7 +20,6 @@ use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::{bind_interrupts, interrupt};
 
-use smart_leds::RGBW;
 use static_cell::StaticCell;
 
 use crate::color::Color;
@@ -32,7 +31,7 @@ use crate::tasks::tcp::TcpTaskOpts;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-static mut CORE1_STACK: Stack<8192> = Stack::new();
+static mut CORE1_STACK: Stack<16384> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 static EXECUTOR0: InterruptExecutor = InterruptExecutor::new();

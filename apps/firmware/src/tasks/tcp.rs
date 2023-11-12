@@ -15,8 +15,9 @@ use embassy_time::{Duration, Timer};
 
 use static_cell::make_static;
 
+use crate::color::Color;
 use crate::shared::STATE;
-use crate::utils::hex::hex_to_rgbw;
+
 use {defmt_rtt as _, panic_probe as _};
 
 pub struct TcpTaskOpts {
@@ -149,13 +150,16 @@ pub async fn tcp_task(spawner: Spawner, opts: TcpTaskOpts, mut common: Common<'s
 }
 
 fn handle(req: &str) {
-    let parse_result = hex_to_rgbw(req);
+    let parse_result = Color::from_hex(req);
     if parse_result.is_err() {
         warn!("invalid hex");
         return;
     }
 
-    let (_, color) = parse_result.unwrap();
+    let color = parse_result.unwrap();
     STATE.lock(|cur| cur.borrow_mut().set_color(color));
-    info!("color changed to {}{}{}", color.r, color.g, color.b);
+    info!(
+        "color changed to {}{}{}{}",
+        color.r, color.g, color.b, color.w
+    );
 }

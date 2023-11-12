@@ -10,29 +10,17 @@ pub struct Color {
 
 impl Clone for Color {
     fn clone(&self) -> Self {
-        Self {
-            r: self.r,
-            g: self.g,
-            b: self.b,
-            w: self.w,
-        }
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        self.r = source.r;
-        self.g = source.g;
-        self.b = source.b;
-        self.w = source.w;
+        *self
     }
 }
 
-impl Into<Color> for (u8, u8, u8, u8) {
-    fn into(self: (u8, u8, u8, u8)) -> Color {
-        Color {
-            r: self.0,
-            g: self.1,
-            b: self.2,
-            w: self.3,
+impl From<(u8, u8, u8, u8)> for Color {
+    fn from(color: (u8, u8, u8, u8)) -> Self {
+        Self {
+            r: color.0,
+            g: color.1,
+            b: color.2,
+            w: color.3,
         }
     }
 }
@@ -47,6 +35,7 @@ impl Color {
         }
     }
 
+    #[allow(dead_code)]
     pub const fn new(r: u8, g: u8, b: u8, w: u8) -> Self {
         Self { r, g, b, w }
     }
