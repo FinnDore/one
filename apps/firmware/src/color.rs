@@ -26,17 +26,6 @@ impl Clone for Color {
     }
 }
 
-impl Default for Color {
-    fn default() -> Self {
-        Self {
-            r: 0,
-            g: 0,
-            b: 0,
-            w: 0,
-        }
-    }
-}
-
 impl Into<Color> for (u8, u8, u8, u8) {
     fn into(self: (u8, u8, u8, u8)) -> Color {
         Color {
@@ -47,19 +36,29 @@ impl Into<Color> for (u8, u8, u8, u8) {
         }
     }
 }
+
 impl Color {
-    pub fn new(r: u8, g: u8, b: u8, w: u8) -> Self {
+    pub const fn default() -> Self {
+        Self {
+            r: 0,
+            g: 0,
+            b: 0,
+            w: 0,
+        }
+    }
+
+    pub const fn new(r: u8, g: u8, b: u8, w: u8) -> Self {
         Self { r, g, b, w }
     }
 
     pub fn from_hex(hex: &str) -> Result<Self, ()> {
-         match  hex::hex_to_rgbw(hex) {
-Ok((_, color)) -> 
-            Ok(color),
-            Err(_) -> Err(())        }
+        match hex::hex_to_rgbw(hex) {
+            Ok((_, color)) => Ok(color),
+            Err(_) => Err(()),
+        }
     }
 
-    pub fn white() -> Color {
+    pub const fn white() -> Color {
         Color {
             r: 255,
             g: 255,
