@@ -1,4 +1,3 @@
-use defmt::debug;
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::pio::{
     Common, Config, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -101,7 +100,6 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
             words[i] = word;
         }
 
-        debug!("Writing {:b} words", words[0]);
         // DMA transfer
         self.sm.tx().dma_push(self.dma.reborrow(), &words).await;
     }
