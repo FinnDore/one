@@ -5,12 +5,13 @@ use embassy_rp::pio::{
 use embassy_rp::{clocks, into_ref, Peripheral, PeripheralRef};
 use fixed::types::U24F8;
 use fixed_macro::fixed;
-use smart_leds::RGBW;
+
+use crate::color::Color;
 
 pub struct Ws2812<'d, P: Instance, const S: usize, const N: usize> {
     dma: PeripheralRef<'d, AnyChannel>,
     sm: StateMachine<'d, P, S>,
-    pub leds: [RGBW<u8>; N],
+    pub leds: [Color; N],
 }
 
 impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
@@ -19,7 +20,7 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         mut sm: StateMachine<'d, P, S>,
         dma: impl Peripheral<P = impl Channel> + 'd,
         pin: impl PioPin,
-        leds: [RGBW<u8>; N],
+        leds: [Color; N],
     ) -> Self {
         into_ref!(dma);
 
@@ -86,14 +87,14 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         }
     }
 
-    pub async fn write(&mut self, colors: [RGBW<u8>; N]) {
+    pub async fn write(&mut self, colors: [Color; N]) {
         // Precompute the word bytes from the colors
         let mut words = [u32::MAX; N];
 
         for i in 0..N {
             words[i] = u32::MAX;
 
-            let word = (u32::MIN)
+            let word = u32::from(colors[i].w)
                 | (u32::from(colors[i].g) << 24)
                 | (u32::from(colors[i].r) << 16)
                 | (u32::from(colors[i].b) << 8);
@@ -104,7 +105,7 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         self.sm.tx().dma_push(self.dma.reborrow(), &words).await;
     }
 
-    pub async fn write_all_colors(&mut self, color: RGBW<u8>) {
+    pub async fn write_all_colors(&mut self, color: Color) {
         for i in 0..N {
             self.leds[i] = color
         }
