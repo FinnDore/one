@@ -14,7 +14,7 @@ use defmt::*;
 use embassy_executor::{Executor, InterruptExecutor, Spawner};
 
 use embassy_rp::interrupt::{InterruptExt, Priority};
-use embassy_rp::multicore::Stack;
+use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{InterruptHandler, Pio};
 use embassy_rp::{bind_interrupts, interrupt};
@@ -24,12 +24,13 @@ use static_cell::StaticCell;
 
 use crate::shared::NUM_LEDS;
 
+use crate::tasks::button::button_task;
 use crate::tasks::color::color_task;
 use crate::tasks::tcp::TcpTaskOpts;
 use crate::ws2812::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
-static mut CORE1_STACK: Stack<4096> = Stack::new();
+static mut CORE1_STACK: Stack<8192> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 static EXECUTOR0: InterruptExecutor = InterruptExecutor::new();
@@ -48,8 +49,8 @@ async fn main(main_spawner: Spawner) {
 
     interrupt::SWI_IRQ_1.set_priority(Priority::P0);
     let s = EXECUTOR0.start(interrupt::SWI_IRQ_1);
-    // s.spawn(button_task(p.PIN_15))
-    //     .expect("Button task failed to spawn");
+    s.spawn(button_task(p.PIN_15))
+        .expect("Button task failed to spawn");
 
     let ws2812 = Ws2812::new(
         &mut pio.common,
@@ -58,16 +59,15 @@ async fn main(main_spawner: Spawner) {
         p.PIN_16,
         [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
     );
-    s.spawn(color_task(ws2812))
-        .expect("Color task failed to spawn");
-    // spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
-    //     let executor1 = EXECUTOR1.init(Executor::new());
-    //     executor1.run(|spawner| {
-    //         spawner
-    //             .spawn(color_task(ws2812))
-    //             .expect("Color task failed to spawn")
-    //     });
-    // });
+
+    spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {
+        let executor1 = EXECUTOR1.init(Executor::new());
+        executor1.run(|spawner| {
+            spawner
+                .spawn(color_task(ws2812))
+                .expect("Color task failed to spawn")
+        });
+    });
 
     tcp_task(
         main_spawner,
