@@ -3,6 +3,7 @@
 #![feature(type_alias_impl_trait)]
 
 mod animations;
+mod color;
 mod shared;
 mod tasks;
 mod utils;
@@ -22,6 +23,7 @@ use embassy_rp::{bind_interrupts, interrupt};
 use smart_leds::RGBW;
 use static_cell::StaticCell;
 
+use crate::color::Color;
 use crate::shared::NUM_LEDS;
 
 use crate::tasks::button::button_task;
@@ -57,7 +59,7 @@ async fn main(main_spawner: Spawner) {
         pio.sm1,
         p.DMA_CH1,
         p.PIN_16,
-        [RGBW::new_alpha(255, 255, 255, smart_leds::White(0)); NUM_LEDS],
+        [Color::default(); NUM_LEDS],
     );
 
     spawn_core1(p.CORE1, unsafe { &mut CORE1_STACK }, || {

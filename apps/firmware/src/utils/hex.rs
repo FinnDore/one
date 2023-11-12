@@ -6,6 +6,8 @@ use nom::{
 };
 use smart_leds::{White, RGBW};
 
+use crate::color::Color;
+
 fn from_hex(input: &str) -> Result<u8, core::num::ParseIntError> {
     u8::from_str_radix(input, 16)
 }
@@ -18,8 +20,8 @@ fn hex_primary(input: &str) -> IResult<&str, u8> {
     map_res(take_while_m_n(2, 2, is_hex_digit), from_hex).parse(input)
 }
 
-pub fn hex_to_rgbw(input: &str) -> IResult<&str, RGBW<u8>> {
+pub fn hex_to_rgbw(input: &str) -> IResult<&str, Color> {
     let (input, _) = tag("#")(input)?;
-    let (input, (red, green, blue)) = (hex_primary, hex_primary, hex_primary).parse(input)?;
-    Ok((input, RGBW::new_alpha(red, green, blue, White(0))))
+    let (input, result) = (hex_primary, hex_primary, hex_primary, hex_primary).parse(input)?;
+    Ok((input, result.into()))
 }

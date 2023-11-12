@@ -1,34 +1,34 @@
-use smart_leds::{White, RGBW};
+use crate::color::Color;
 
 pub trait Animation {
     fn is_static(&self) -> bool;
-    fn current_frame(&self) -> &RGBW<u8>;
-    fn next_frame(&mut self) -> &RGBW<u8>;
+    fn current_frame(&self) -> &Color;
+    fn next_frame(&mut self) -> &Color;
 }
 
 pub struct Rainbow {
-    current_color: RGBW<u8>,
+    current_color: Color,
     rotation: u8,
     pub is_static: bool,
 }
 
-fn wheel(mut wheel_pos: u8) -> RGBW<u8> {
+fn wheel(mut wheel_pos: u8) -> Color {
     wheel_pos = 255 - wheel_pos;
     if wheel_pos < 85 {
-        return (255 - wheel_pos * 3, 0, wheel_pos * 3, White(0)).into();
+        return (255 - wheel_pos * 3, 0, wheel_pos * 3, 0).into();
     }
     if wheel_pos < 170 {
         wheel_pos -= 85;
-        return (0, wheel_pos * 3, 255 - wheel_pos * 3, White(0)).into();
+        return (0, wheel_pos * 3, 255 - wheel_pos * 3, 0).into();
     }
     wheel_pos -= 170;
-    (wheel_pos * 3, 255 - wheel_pos * 3, 0, White(0)).into()
+    (wheel_pos * 3, 255 - wheel_pos * 3, 0, 0).into()
 }
 
 impl Rainbow {
     pub const fn new() -> Self {
         Self {
-            current_color: RGBW::new_alpha(255, 255, 255, White(0)),
+            current_color: Color::default(),
             is_static: false,
             rotation: 0,
         }
@@ -36,14 +36,14 @@ impl Rainbow {
 }
 
 impl Animation for Rainbow {
-    fn next_frame(&mut self) -> &RGBW<u8> {
+    fn next_frame(&mut self) -> &Color {
         self.rotation = self.rotation.wrapping_add(1);
 
         self.current_color = wheel(self.rotation);
         &self.current_color
     }
 
-    fn current_frame(&self) -> &RGBW<u8> {
+    fn current_frame(&self) -> &Color {
         &self.current_color
     }
 
@@ -53,12 +53,12 @@ impl Animation for Rainbow {
 }
 
 pub struct StaticColor {
-    pub current_color: RGBW<u8>,
+    pub current_color: Color,
     pub is_static: bool,
 }
 
 impl StaticColor {
-    pub const fn new(color: RGBW<u8>) -> Self {
+    pub const fn new(color: Color) -> Self {
         Self {
             current_color: color,
             is_static: true,
@@ -66,20 +66,20 @@ impl StaticColor {
     }
 
     pub const fn default() -> Self {
-        StaticColor::new(RGBW::new_alpha(255, 255, 255, White(0)))
+        StaticColor::new(Color::default())
     }
 
-    pub fn set_color(&mut self, color: RGBW<u8>) {
+    pub fn set_color(&mut self, color: Color) {
         self.current_color = color;
     }
 }
 
 impl Animation for StaticColor {
-    fn next_frame(&mut self) -> &RGBW<u8> {
+    fn next_frame(&mut self) -> &Color {
         return self.current_frame();
     }
 
-    fn current_frame(&self) -> &RGBW<u8> {
+    fn current_frame(&self) -> &Color {
         &self.current_color
     }
 
@@ -121,12 +121,12 @@ impl AnimationSet {
         Self {
             rainbow: Rainbow::new(),
             folowing_static_color: StaticColor::default(),
-            white_color: StaticColor::new(RGBW::new_alpha(255, 255, 255, White(255))),
+            white_color: StaticColor::new(Color::white()),
             current_index: 0,
         }
     }
 
-    pub fn set_color(&mut self, color: RGBW<u8>) {
+    pub fn set_color(&mut self, color: Color) {
         self.folowing_static_color.set_color(color);
         self.current_index = 1;
     }
