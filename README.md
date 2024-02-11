@@ -10,5 +10,5 @@ One is a wifi controlled smart light and companion app written mostly in rust an
 </p>
 
 <p>
-  <video src="./.github/assets/one.mp4" width="100%" alt="Video demontrating the one light" />
+  <img src="./.github/assets/one.gf" width="100%" alt="Gif demontrating the one light" />
 </p>
