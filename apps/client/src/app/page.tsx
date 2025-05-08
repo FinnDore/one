@@ -6,10 +6,15 @@ import type { NextPage } from 'next';
 import clsx from 'clsx';
 
 import { MacTrafficLights } from '~/components/traffic-lights';
+import { commands } from '~/lazy-tauri-api/get-current';
 
 const Home: NextPage = () => {
     const [added, setAdded] = useState(true);
-    const [color, setColor] = useState('#5F00A9');
+    const [color, setColor] = useState({
+        hex: '#5F00A9',
+        rgb: { r: 95, g: 0, b: 169 },
+    });
+
     return (
         <div className="flex h-screen w-screen flex-col rounded-lg border border-white/25 bg-black">
             <div className="full h-min ps-4 pt-4" data-tauri-drag-region="true">
@@ -18,7 +23,13 @@ const Home: NextPage = () => {
             <input
                 type="color"
                 className="absolute"
-                onChange={e => setColor(e.target.value)}
+                onChange={e => {
+                    setColor(() => ({
+                        hex: e.target.value,
+                        rgb: hexToRgbString(e.target.value),
+                    }));
+                    void commands.set_color(e.target.value);
+                }}
             />
 
             <div
@@ -40,7 +51,7 @@ export default Home;
 const AddLight = () => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer select-none transition-all duration-300 hover:scale-105">
-            <Dots purple={true} />
+            <Dots purple={false} />
             <div className="add-light-text absolute w-full -translate-y-[125%] text-center text-3xl font-bold text-white">
                 Add Light
             </div>
@@ -117,14 +128,19 @@ const AddLight = () => {
     );
 };
 
-const Dots = (props: { purple?: boolean }) => (
-    <div className="center-absolute transform-all pointer-events-none absolute h-[150%] w-screen">
+const Dots = (props: { purple?: boolean; hue?: number }) => (
+    <div
+        className="center-absolute transform-all pointer-events-none absolute h-[150%] w-screen"
+        style={{
+            filter: `hue-rotate(${props.hue ?? 0}deg)`,
+        }}
+    >
         <div
             className={clsx(
                 'absolute h-full w-[200%] -translate-x-1/4 bg-repeat transition-all duration-300 group-hover:scale-[.85]',
                 {
-                    dots: props.purple,
-                    'dots-purple': !props.purple,
+                    dots: !props.purple,
+                    'dots-purple': props.purple,
                 },
             )}
         ></div>
@@ -145,13 +161,25 @@ const Dots = (props: { purple?: boolean }) => (
     </div>
 );
 
-const Light = (props: { name: string; color: string }) => {
+const Light = (props: {
+    name: string;
+    color: {
+        hex: string;
+        rgb: {
+            r: number;
+            g: number;
+            b: number;
+        };
+    };
+}) => {
     return (
         <div className="group relative aspect-square h-96 cursor-pointer select-none transition-all duration-300 hover:scale-105">
             <div className="absolute bottom-0 z-10 translate-y-[125%] text-xl text-white/70">
                 {props.name}
             </div>
-            <Dots />
+            <Dots
+                hue={props.color.rgb.r * props.color.rgb.g * props.color.rgb.b}
+            />
 
             <div
                 className="add-light-bg-gradient absolute h-full w-full overflow-hidden rounded-md"
@@ -167,9 +195,24 @@ const Light = (props: { name: string; color: string }) => {
                 style={{
                     background:
                         'conic-gradient(from 90deg at 50% 50%,' +
-                        'rgba(82, 0, 255, 0.00) 110.62499642372131deg,' +
-                        'rgba(143, 0, 255, 0.38) 206.25000715255737deg,' +
-                        'rgba(77, 0, 203, 0.30) 333.7499928474426deg)',
+                        `rgba(${combineColor(
+                            props.color.rgb.r,
+                            48,
+                        )}, 0, ${combineColor(
+                            props.color.rgb.b,
+                            86,
+                        )}, 0.00) 110.62499642372131deg,` +
+                        `rgba(${props.color.rgb.r + 143}, 0, ${combineColor(
+                            props.color.rgb.b,
+                            86,
+                        )}, 0.38) 206.25000715255737deg,` +
+                        `rgba(${combineColor(
+                            props.color.rgb.r,
+                            -18,
+                        )} , 0, ${combineColor(
+                            props.color.rgb.b,
+                            34,
+                        )}, 0.30) 333.7499928474426deg)`,
                 }}
             ></div>
             <img
@@ -181,7 +224,7 @@ const Light = (props: { name: string; color: string }) => {
                 <div
                     className="absolute h-full w-full rounded-md opacity-95"
                     style={{
-                        background: props.color,
+                        background: props.color.hex,
                     }}
                 ></div>
                 <div
@@ -189,9 +232,24 @@ const Light = (props: { name: string; color: string }) => {
                     style={{
                         background:
                             'conic-gradient(from 180deg at 50% 50%,' +
-                            'rgba(82, 0, 255, 0.00) 110.62499642372131deg,' +
-                            '#8F00FF 206.25000715255737deg,' +
-                            'rgba(77, 0, 203, 0.79) 333.7499928474426deg)',
+                            `rgba(${combineColor(
+                                props.color.rgb.r,
+                                48,
+                            )}, 0, ${combineColor(
+                                props.color.rgb.b,
+                                86,
+                            )}, 0.00) 110.62499642372131deg,` +
+                            `rgba(${props.color.rgb.r + 143}, 0, ${combineColor(
+                                props.color.rgb.b,
+                                86,
+                            )}, 0.38) 206.25000715255737deg,` +
+                            `rgba(${combineColor(
+                                props.color.rgb.r,
+                                -18,
+                            )} , 0, ${combineColor(
+                                props.color.rgb.b,
+                                34,
+                            )}, 0.76) 333.7499928474426deg)`,
                     }}
                 ></div>
                 <img
@@ -217,4 +275,24 @@ const Light = (props: { name: string; color: string }) => {
             </div>
         </div>
     );
+};
+
+const combineColor = (color: number, color2: number) => {
+    const sum = color + color2;
+    if (sum > 255) {
+        return 255;
+    } else if (sum < 0) {
+        return 0;
+    } else {
+        return sum;
+    }
+};
+
+const hexToRgbString = (hex: string) => {
+    const bigint = parseInt(hex.replace('#', ''), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+
+    return { r, g, b };
 };
