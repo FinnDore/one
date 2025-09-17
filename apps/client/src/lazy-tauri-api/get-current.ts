@@ -20,3 +20,10 @@ export const window = {
         return await importGetCurrent();
     },
 };
+
+export const commands = {
+    async set_color(color: string) {
+        const { invoke } = await import('@tauri-apps/api/tauri');
+        return invoke<void>('set_color', { color });
+    },
+};
